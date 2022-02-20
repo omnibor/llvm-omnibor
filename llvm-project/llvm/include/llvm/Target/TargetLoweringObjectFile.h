@@ -235,6 +235,10 @@ public:
     return nullptr;
   }
 
+  /// If supported, return the section to use for the .bom
+  /// metadata. Otherwise, return nullptr.
+  virtual MCSection *getSectionForGitBom() const { return nullptr; }
+
   /// On targets that use separate function descriptor symbols, return a section
   /// for the descriptor given its symbol. Use only with defined functions.
   virtual MCSection *

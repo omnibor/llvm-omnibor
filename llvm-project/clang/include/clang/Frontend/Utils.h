@@ -81,6 +81,13 @@ public:
   virtual void attachToPreprocessor(Preprocessor &PP);
   virtual void attachToASTReader(ASTReader &R);
   ArrayRef<std::string> getDependencies() const { return Dependencies; }
+  ArrayRef<std::string> getBomDependencies() const { return *BomDependencies; }
+  std::shared_ptr<std::vector<std::string>> getBomDependenciesPtr() const {
+    return BomDependencies;
+  }
+  void setBomDependenciesPtr(std::shared_ptr<std::vector<std::string>> Deps) {
+    BomDependencies = Deps;
+  }
 
   /// Called when a new file is seen. Return true if \p Filename should be added
   /// to the list of dependencies.
@@ -109,6 +116,7 @@ protected:
 private:
   llvm::StringSet<> Seen;
   std::vector<std::string> Dependencies;
+  std::shared_ptr<std::vector<std::string>> BomDependencies;
 };
 
 /// Builds a dependency file when attached to a Preprocessor (for includes) and
@@ -143,6 +151,7 @@ private:
   bool IncludeModuleFiles;
   DependencyOutputFormat OutputFormat;
   unsigned InputFileIndex;
+  std::shared_ptr<std::vector<std::string>> BomFiles;
 };
 
 /// Collects the dependencies for imported modules into a directory.  Users

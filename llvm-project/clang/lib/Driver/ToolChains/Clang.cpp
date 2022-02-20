@@ -6548,6 +6548,29 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *Exec = D.getClangProgramPath();
 
+  auto GitBomRecordSwitches = Args.hasFlag(
+      options::OPT_frecord_gitbom, options::OPT_fno_record_gitbom, false);
+  // GITBOM TODO:
+  // Eliminate the need to pass -MD with -frecord-gitbom option.
+  Arg *MD = Args.getLastArg(options::OPT_MD);
+  if (!MD)
+    D.Diag(diag::warn_drv_gitbom_requires_md);
+
+  if (GitBomRecordSwitches && MD) {
+    CmdArgs.push_back("-record-gitbom");
+    // Pass the dir name where the gitbom file should be created.
+    if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
+      SmallString<128> OutputPath(OutputOpt->getValue());
+      llvm::sys::path::remove_filename(OutputPath);
+      if (OutputPath.empty())
+        CmdArgs.push_back(Args.MakeArgString("./"));
+      else
+        CmdArgs.push_back(Args.MakeArgString(OutputPath));
+    } else {
+      CmdArgs.push_back(Args.MakeArgString("./"));
+    }
+  }
+
   // Optionally embed the -cc1 level arguments into the debug info or a
   // section, for build analysis.
   // Also record command line arguments into the debug info if

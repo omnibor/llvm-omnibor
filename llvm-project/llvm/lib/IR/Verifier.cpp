@@ -424,6 +424,7 @@ public:
     visitModuleFlags(M);
     visitModuleIdents(M);
     visitModuleCommandLines(M);
+    visitModuleGitBom(M);
 
     verifyCompileUnits();
 
@@ -450,6 +451,7 @@ private:
   void visitComdat(const Comdat &C);
   void visitModuleIdents(const Module &M);
   void visitModuleCommandLines(const Module &M);
+  void visitModuleGitBom(const Module &M);
   void visitModuleFlags(const Module &M);
   void visitModuleFlag(const MDNode *Op,
                        DenseMap<const MDString *, const MDNode *> &SeenIDs,
@@ -1482,6 +1484,24 @@ void Verifier::visitModuleIdents(const Module &M) {
            "incorrect number of operands in llvm.ident metadata", N);
     Assert(dyn_cast_or_null<MDString>(N->getOperand(0)),
            ("invalid value for llvm.ident metadata entry operand"
+            "(the operand should be a string)"),
+           N->getOperand(0));
+  }
+}
+
+void Verifier::visitModuleGitBom(const Module &M) {
+  const NamedMDNode *CommandLines = M.getNamedMetadata(".bom");
+  if (!CommandLines)
+    return;
+
+  // .bom takes a list of metadata entry. Each entry has only one
+  // string. Scan each .bom entry and make sure that this
+  // requirement is met.
+  for (const MDNode *N : CommandLines->operands()) {
+    Assert(N->getNumOperands() == 1,
+           "incorrect number of operands in .bom metadata", N);
+    Assert(dyn_cast_or_null<MDString>(N->getOperand(0)),
+           ("invalid value for .bom metadata entry operand"
             "(the operand should be a string)"),
            N->getOperand(0));
   }
