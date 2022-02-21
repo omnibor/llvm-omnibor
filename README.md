@@ -3,24 +3,42 @@ A repo for the GitBOM Community to collaborate on llvm changes before submitting
 The version of llvm being used is llvm-13.0.
 
 # Example
+
+To see llvm using GitBOMs, build llvm-project.
+
+Create a dir with three files: a.h, b.h, a.c:
+
 $ cat a.h
+```c
 int a = 100;
+```
 
 $ cat dir/b.h
+```c
 int b = 1000;
+```
 
 $ cat a.c
-\#include "a.h"
-\#include "b.h"
-\#include <stdio.h>
+```c
+#include "a.h"
+#include "b.h"
+#include <stdio.h>
 
 int main() {
   printf("%d",a);
   return 0;
 }
+```
 
+Use the llvm you built from llvm-project:
+
+```bash
 $ clang -c -MD -Idir -frecord-gitbom a.c -o a.o
+```
 
+Use llvm-readelf to see the result:
+
+```bash
 $ llvm-readelf -p ".bom" a.o
 String dump of section '.bom':
 [     0] faed6b820e7e9db9b55fd38a25bf6867eea61b6b
@@ -50,3 +68,4 @@ blob bb04576651b9097b3027e4299cc30c88f334535f
 blob c2ab78a2d4c20711295a501c61dd038bfa029934
 blob e6f7481a19cbc7857dbbfebef5adbeeaf80a70b8
 blob f2682632090ba3e7f2caa1736394cbb235ceab0c
+```
