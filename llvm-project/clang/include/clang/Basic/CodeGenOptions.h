@@ -168,6 +168,14 @@ public:
   /// if non-empty.
   std::string RecordCommandLine;
 
+  /// The string containing the gitref of the .bom file.
+  std::string RecordGitBom;
+
+  /// List of dependent source/header files.
+  /// This is shared with DependencyOuputOptions.
+  /// This has same contents as Dependencies in DependencyCollector.
+  std::shared_ptr<std::vector<std::string>> BomDependencies;
+
   std::map<std::string, std::string> DebugPrefixMap;
   std::map<std::string, std::string> CoveragePrefixMap;
 
