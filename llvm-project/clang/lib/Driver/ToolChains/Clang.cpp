@@ -6553,22 +6553,25 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // GITBOM TODO:
   // Eliminate the need to pass -MD with -frecord-gitbom option.
   Arg *MD = Args.getLastArg(options::OPT_MD);
-  if (!MD)
+  if (GitBomRecordSwitches && !MD)
     D.Diag(diag::warn_drv_gitbom_requires_md);
 
   if (GitBomRecordSwitches && MD) {
+    SmallString<128> OutputPath;
     CmdArgs.push_back("-record-gitbom");
     // Pass the dir name where the gitbom file should be created.
     if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
-      SmallString<128> OutputPath(OutputOpt->getValue());
+      OutputPath = OutputOpt->getValue();
       llvm::sys::path::remove_filename(OutputPath);
-      if (OutputPath.empty())
-        CmdArgs.push_back(Args.MakeArgString("./"));
-      else
-        CmdArgs.push_back(Args.MakeArgString(OutputPath));
-    } else {
-      CmdArgs.push_back(Args.MakeArgString("./"));
     }
+    llvm::sys::path::append(OutputPath, ".bom");
+    llvm::sys::path::append(OutputPath, "objects");
+    CmdArgs.push_back(Args.MakeArgString(OutputPath));
+    // Create the .bom/objects directory
+    auto EC =
+        llvm::sys::fs::create_directories(OutputPath, /*IgnoreExisting=*/true);
+    if (EC)
+      D.Diag(diag::err_drv_no_such_file) << OutputPath;
   }
 
   // Optionally embed the -cc1 level arguments into the debug info or a

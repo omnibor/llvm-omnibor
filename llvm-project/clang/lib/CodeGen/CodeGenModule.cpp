@@ -6209,9 +6209,11 @@ static std::string getHash(std::string Filename, DiagnosticsEngine &Diags) {
   return convertToHex(Result);
 }
 
-/// This function computes the gitref to be written into the
-/// the .bom section. It also creates the file that contains
-/// the gitrefs of all the dependencies.
+/// This function computes the gitref to be written into the .bom section.
+/// It also creates the file that contains the gitrefs of all the
+/// dependencies. The file is stored in a subdirectory that is named
+/// with the first two characters of the gitref(SHA1) and the filename
+/// is the remaining 38 characters.
 std::string
 CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
   llvm::SHA1 Hash;
@@ -6232,21 +6234,23 @@ CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
   gitRef = convertToHex(Result);
 
   SmallString<128> gitRefPath(getCodeGenOpts().RecordGitBom);
+  llvm::sys::path::append(gitRefPath, gitRef.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directory(gitRefPath, true);
   if (EC) {
     Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
-    return convertToHex(Result);
+    return gitRef;
   }
-  llvm::sys::path::append(gitRefPath, gitRef);
+
+  llvm::sys::path::append(gitRefPath, gitRef.substr(2));
   llvm::raw_fd_ostream OS(gitRefPath, EC, llvm::sys::fs::OF_TextWithCRLF);
   if (EC) {
     DiagnosticsEngine &Diags = getDiags();
     Diags.Report(diag::err_fe_error_opening) << gitRef << EC.message();
-    return std::string();
+    return gitRef;
   }
   OS << hashContents;
-  return convertToHex(Result);
+  return gitRef;
 }
 
 /// Emit .bom section
