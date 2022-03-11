@@ -979,6 +979,19 @@ private:
   size_t shardOffsets[numShards];
 };
 
+// .bom section.
+template <class ELFT> class BomSection final : public SyntheticSection {
+
+public:
+  static BomSection *create();
+  BomSection(std::string gitRef);
+  size_t getSize() const override { return gitRef.size(); }
+  void writeTo(uint8_t *buf) override;
+
+private:
+  std::string gitRef;
+};
+
 // .MIPS.abiflags section.
 template <class ELFT>
 class MipsAbiFlagsSection final : public SyntheticSection {
