@@ -125,7 +125,6 @@ template <class ELFT> BomSection<ELFT> *BomSection<ELFT>::create() {
   FileHashBomMap BomMap;
   std::error_code ec;
   std::string filename = config->outputFile.str();
-  filename.append(".gitbom");
   StringRef BomFile = StringRef(filename);
   for (StringRef path : config->dependencyFiles) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
