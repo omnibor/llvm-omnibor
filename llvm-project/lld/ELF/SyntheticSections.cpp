@@ -37,8 +37,10 @@
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/Parallel.h"
+#include "llvm/Support/SHA1.h"
 #include "llvm/Support/TimeProfiler.h"
 #include <cstdlib>
+#include <map>
 #include <thread>
 
 using namespace llvm;
@@ -86,6 +88,121 @@ static ArrayRef<uint8_t> getVersion() {
 MergeInputSection *elf::createCommentSection() {
   return make<MergeInputSection>(SHF_MERGE | SHF_STRINGS, SHT_PROGBITS, 1,
                                  getVersion(), ".comment");
+}
+
+// .bom section
+template <class ELFT>
+BomSection<ELFT>::BomSection(std::string gitRef)
+    : SyntheticSection(llvm::ELF::SHF_ALLOC, llvm::ELF::SHT_NOTE, 4, ".bom"),
+      gitRef(gitRef) {}
+
+template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
+  ArrayRef<uint8_t> contents = {(const uint8_t *)gitRef.data(),
+                                gitRef.size() + 1};
+  memcpy(buf, contents.data(), contents.size());
+}
+
+// TODO: Move this function.
+static std::string convertToHex(StringRef Input) {
+  static const char *const LUT = "0123456789abcdef";
+  size_t Length = Input.size();
+
+  std::string Output;
+  Output.reserve(2 * Length);
+  for (size_t i = 0; i < Length; ++i) {
+    const unsigned char c = Input[i];
+    Output.push_back(LUT[c >> 4]);
+    Output.push_back(LUT[c & 15]);
+  }
+  return Output;
+}
+
+template <class ELFT> BomSection<ELFT> *BomSection<ELFT>::create() {
+
+  using FileHashBomMap =
+      std::map<std::string, std::pair<std::string, std::string>>;
+
+  FileHashBomMap BomMap;
+  std::error_code ec;
+  std::string filename = config->outputFile.str();
+  StringRef BomFile = StringRef(filename);
+  for (StringRef path : config->dependencyFiles) {
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+        llvm::MemoryBuffer::getFile(path, /*IsText=*/true);
+    if (!fileBuf) {
+      error("\n error opening " + path);
+    }
+    llvm::SHA1 Hash;
+    std::string initData =
+        "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+    Hash.update(StringRef(initData));
+    Hash.update(fileBuf.get()->getBuffer());
+    auto Result = Hash.final();
+    std::string result = convertToHex(Result);
+    BomMap[path.str()] = std::make_pair(result, "");
+  }
+
+  bool create = false;
+  for (InputSectionBase *sec : inputSections) {
+    if (sec->name == ".bom") {
+      sec->markDead();
+      create = true;
+      std::string filename = toString(sec->file);
+      StringRef content = toStringRef(sec->data());
+      // TODO: check if the file exists in the map
+      FileHashBomMap::iterator Iter = BomMap.find(filename);
+      if (Iter != BomMap.end())
+        Iter->second.second = content.str();
+    }
+  }
+
+  FileHashBomMap::iterator Iter;
+  std::vector<std::string> DepLines;
+  for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
+    std::string Line = "blob " + Iter->second.first;
+    if (!Iter->second.second.empty()) {
+      Line.append(" bom " + Iter->second.second + "\n");
+    } else
+      Line.append("\n");
+    DepLines.push_back(Line);
+  }
+  std::sort(DepLines.begin(), DepLines.end());
+  // Compute Hash
+  llvm::SHA1 Hash;
+  std::string hashContents, gitRef;
+  for (auto line : DepLines) {
+    hashContents.append(line);
+  }
+  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(hashContents);
+  auto Result = Hash.final();
+  gitRef = convertToHex(Result);
+
+  // Generate Bom File
+  SmallString<128> gitRefPath(BomFile);
+  llvm::sys::path::remove_filename(gitRefPath);
+  if (gitRefPath.empty()) {
+    SmallString<128> CurDir("./");
+    gitRefPath = CurDir;
+  }
+  llvm::sys::path::append(gitRefPath, ".gitbom/object");
+  llvm::sys::path::append(gitRefPath, gitRef.substr(0, 2));
+  std::error_code EC;
+  EC = llvm::sys::fs::create_directories(gitRefPath, true);
+  if (EC) {
+    error("\n error opening " + gitRefPath);
+  }
+  llvm::sys::path::append(gitRefPath, gitRef.substr(2));
+  llvm::raw_fd_ostream OS(gitRefPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    error("\n error opening " + gitRefPath);
+  }
+  OS << hashContents;
+  if (create) {
+    return make<BomSection<ELFT>>(gitRef);
+  }
+  return nullptr;
 }
 
 // .MIPS.abiflags section.
@@ -3867,6 +3984,11 @@ template void elf::splitSections<ELF32LE>();
 template void elf::splitSections<ELF32BE>();
 template void elf::splitSections<ELF64LE>();
 template void elf::splitSections<ELF64BE>();
+
+template class elf::BomSection<ELF32LE>;
+template class elf::BomSection<ELF32BE>;
+template class elf::BomSection<ELF64LE>;
+template class elf::BomSection<ELF64BE>;
 
 template class elf::MipsAbiFlagsSection<ELF32LE>;
 template class elf::MipsAbiFlagsSection<ELF32BE>;

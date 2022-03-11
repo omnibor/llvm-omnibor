@@ -395,6 +395,10 @@ template <class ELFT> void elf::createSyntheticSections() {
       add(sec);
   }
 
+  if (config->gitBom)
+    if (auto *sec = BomSection<ELFT>::create())
+      add(sec);
+
   StringRef relaDynName = config->isRela ? ".rela.dyn" : ".rel.dyn";
 
   for (Partition &part : partitions) {

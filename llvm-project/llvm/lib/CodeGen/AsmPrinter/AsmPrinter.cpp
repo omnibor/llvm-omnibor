@@ -2374,8 +2374,8 @@ void AsmPrinter::emitModuleIdents(Module &M) {
 }
 
 void AsmPrinter::emitModuleGitBom(Module &M) {
-  MCSection *CommandLine = getObjFileLowering().getSectionForGitBom();
-  if (!CommandLine)
+  MCSection *Bom = getObjFileLowering().getSectionForGitBom();
+  if (!Bom)
     return;
 
   const NamedMDNode *NMD = M.getNamedMetadata(".bom");
@@ -2383,7 +2383,7 @@ void AsmPrinter::emitModuleGitBom(Module &M) {
     return;
 
   OutStreamer->PushSection();
-  OutStreamer->SwitchSection(CommandLine);
+  OutStreamer->SwitchSection(Bom);
 
   for (unsigned i = 0, e = NMD->getNumOperands(); i != e; ++i) {
     const MDNode *N = NMD->getOperand(i);

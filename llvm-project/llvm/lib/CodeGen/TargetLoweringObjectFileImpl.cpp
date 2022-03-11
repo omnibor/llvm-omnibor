@@ -1110,8 +1110,8 @@ const MCExpr *TargetLoweringObjectFileELF::lowerDSOLocalEquivalent(
 
 MCSection *TargetLoweringObjectFileELF::getSectionForGitBom() const {
   // .bom
-  return getContext().getELFSection(".bom", ELF::SHT_PROGBITS,
-                                    ELF::SHF_MERGE | ELF::SHF_STRINGS, 1);
+  return getContext().getELFSection(".bom", ELF::SHT_PROGBITS, ELF::SHF_MERGE,
+                                    1);
 }
 
 MCSection *TargetLoweringObjectFileELF::getSectionForCommandLines() const {
