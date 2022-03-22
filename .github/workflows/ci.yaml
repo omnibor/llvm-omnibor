@@ -16,7 +16,7 @@ jobs:
     name: yamllint
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code into the Go module directory
+      - name: Check out code
         uses: actions/checkout@v2
       - name: yaml-lint
         uses: ibiqlik/action-yamllint@v1
