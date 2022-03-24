@@ -151,8 +151,9 @@ template <class ELFT> BomSection<ELFT> *BomSection<ELFT>::create() {
       StringRef content = toStringRef(sec->data());
       // TODO: check if the file exists in the map
       FileHashBomMap::iterator Iter = BomMap.find(filename);
-      if (Iter != BomMap.end())
-        Iter->second.second = content.str();
+      if (Iter != BomMap.end()) {
+        Iter->second.second = convertToHex(content.str());
+      }
     }
   }
 
@@ -200,7 +201,7 @@ template <class ELFT> BomSection<ELFT> *BomSection<ELFT>::create() {
   }
   OS << hashContents;
   if (create) {
-    return make<BomSection<ELFT>>(gitRef);
+    return make<BomSection<ELFT>>(Result.str());
   }
   return nullptr;
 }
