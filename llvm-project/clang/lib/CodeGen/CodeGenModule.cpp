@@ -6217,7 +6217,7 @@ static std::string getHash(std::string Filename, DiagnosticsEngine &Diags) {
 std::string
 CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
   llvm::SHA1 Hash;
-  std::string hashContents, gitRef;
+  std::string hashContents, gitRef, gitRefHex;
   std::vector<std::string> DepLines;
   for (auto file : Deps) {
     std::string Line = "blob " + getHash(file, getDiags()) + "\n";
@@ -6231,10 +6231,11 @@ CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
   Hash.update(StringRef(initData));
   Hash.update(hashContents);
   auto Result = Hash.final();
-  gitRef = convertToHex(Result);
+  gitRefHex = convertToHex(Result);
+  gitRef = Result.str();
 
   SmallString<128> gitRefPath(getCodeGenOpts().RecordGitBom);
-  llvm::sys::path::append(gitRefPath, gitRef.substr(0, 2));
+  llvm::sys::path::append(gitRefPath, gitRefHex.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directory(gitRefPath, true);
   if (EC) {
@@ -6242,11 +6243,11 @@ CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
     return gitRef;
   }
 
-  llvm::sys::path::append(gitRefPath, gitRef.substr(2));
+  llvm::sys::path::append(gitRefPath, gitRefHex.substr(2));
   llvm::raw_fd_ostream OS(gitRefPath, EC, llvm::sys::fs::OF_TextWithCRLF);
   if (EC) {
     DiagnosticsEngine &Diags = getDiags();
-    Diags.Report(diag::err_fe_error_opening) << gitRef << EC.message();
+    Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
     return gitRef;
   }
   OS << hashContents;
