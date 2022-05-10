@@ -32,12 +32,6 @@
 #include <utility>
 #include <vector>
 
-namespace llvm {
-
-class Triple;
-
-} // namespace llvm
-
 namespace clang {
 
 class ASTReader;
@@ -46,19 +40,10 @@ class CompilerInvocation;
 class DiagnosticsEngine;
 class ExternalSemaSource;
 class FrontendOptions;
-class HeaderSearch;
-class HeaderSearchOptions;
-class LangOptions;
 class PCHContainerReader;
 class Preprocessor;
 class PreprocessorOptions;
 class PreprocessorOutputOptions;
-
-/// Apply the header search options to get given HeaderSearch object.
-void ApplyHeaderSearchOptions(HeaderSearch &HS,
-                              const HeaderSearchOptions &HSOpts,
-                              const LangOptions &Lang,
-                              const llvm::Triple &triple);
 
 /// InitializePreprocessor - Initialize the preprocessor getting it and the
 /// environment ready to process a single file.
@@ -81,13 +66,6 @@ public:
   virtual void attachToPreprocessor(Preprocessor &PP);
   virtual void attachToASTReader(ASTReader &R);
   ArrayRef<std::string> getDependencies() const { return Dependencies; }
-  ArrayRef<std::string> getBomDependencies() const { return *BomDependencies; }
-  std::shared_ptr<std::vector<std::string>> getBomDependenciesPtr() const {
-    return BomDependencies;
-  }
-  void setBomDependenciesPtr(std::shared_ptr<std::vector<std::string>> Deps) {
-    BomDependencies = Deps;
-  }
 
   /// Called when a new file is seen. Return true if \p Filename should be added
   /// to the list of dependencies.
@@ -116,7 +94,6 @@ protected:
 private:
   llvm::StringSet<> Seen;
   std::vector<std::string> Dependencies;
-  std::shared_ptr<std::vector<std::string>> BomDependencies;
 };
 
 /// Builds a dependency file when attached to a Preprocessor (for includes) and
@@ -151,7 +128,6 @@ private:
   bool IncludeModuleFiles;
   DependencyOutputFormat OutputFormat;
   unsigned InputFileIndex;
-  std::shared_ptr<std::vector<std::string>> BomFiles;
 };
 
 /// Collects the dependencies for imported modules into a directory.  Users

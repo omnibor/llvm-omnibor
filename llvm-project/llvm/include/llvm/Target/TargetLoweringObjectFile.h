@@ -15,6 +15,7 @@
 #define LLVM_TARGET_TARGETLOWERINGOBJECTFILE_H
 
 #include "llvm/MC/MCObjectFileInfo.h"
+#include "llvm/MC/MCRegister.h"
 #include <cstdint>
 
 namespace llvm {
@@ -219,6 +220,14 @@ public:
     return SupportDebugThreadLocalLocation;
   }
 
+  /// Returns the register used as static base in RWPI variants.
+  virtual MCRegister getStaticBase() const { return MCRegister::NoRegister; }
+
+  /// Get the target specific RWPI relocation.
+  virtual const MCExpr *getIndirectSymViaRWPI(const MCSymbol *Sym) const {
+    return nullptr;
+  }
+
   /// Get the target specific PC relative GOT entry relocation
   virtual const MCExpr *getIndirectSymViaGOTPCRel(const GlobalValue *GV,
                                                   const MCSymbol *Sym,
@@ -234,10 +243,6 @@ public:
   virtual MCSection *getSectionForCommandLines() const {
     return nullptr;
   }
-
-  /// If supported, return the section to use for the .bom
-  /// metadata. Otherwise, return nullptr.
-  virtual MCSection *getSectionForGitBom() const { return nullptr; }
 
   /// On targets that use separate function descriptor symbols, return a section
   /// for the descriptor given its symbol. Use only with defined functions.

@@ -10,11 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "clang/Frontend/Utils.h"
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/DependencyOutputOptions.h"
 #include "clang/Frontend/FrontendDiagnostic.h"
-#include "clang/Frontend/Utils.h"
 #include "clang/Lex/DirectoryLookup.h"
 #include "clang/Lex/ModuleMap.h"
 #include "clang/Lex/PPCallbacks.h"
@@ -23,9 +23,7 @@
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
-#include "llvm/Support/SHA1.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
@@ -156,7 +154,6 @@ bool DependencyCollector::addDependency(StringRef Filename) {
 
   if (Seen.insert(SearchPath).second) {
     Dependencies.push_back(std::string(Filename));
-    BomDependencies->push_back(std::string(Filename));
     return true;
   }
   return false;
@@ -195,7 +192,6 @@ DependencyFileGenerator::DependencyFileGenerator(
       AddMissingHeaderDeps(Opts.AddMissingHeaderDeps), SeenMissingHeader(false),
       IncludeModuleFiles(Opts.IncludeModuleFiles),
       OutputFormat(Opts.OutputFormat), InputFileIndex(0) {
-  setBomDependenciesPtr(Opts.BomDependencies);
   for (const auto &ExtraDep : Opts.ExtraDeps) {
     if (addDependency(ExtraDep.first))
       ++InputFileIndex;
