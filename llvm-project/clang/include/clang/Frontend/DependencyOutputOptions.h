@@ -9,6 +9,7 @@
 #ifndef LLVM_CLANG_FRONTEND_DEPENDENCYOUTPUTOPTIONS_H
 #define LLVM_CLANG_FRONTEND_DEPENDENCYOUTPUTOPTIONS_H
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -66,6 +67,9 @@ public:
   /// A list of extra dependencies (filename and kind) to be used for every
   /// target.
   std::vector<std::pair<std::string, ExtraDepKind>> ExtraDeps;
+
+  /// List of dependencies; this is shared with CodeGenOptions.
+  std::shared_ptr<std::vector<std::string>> BomDependencies;
 
   /// In /showIncludes mode, pretend the main TU is a header with this name.
   std::string ShowIncludesPretendHeader;

@@ -1920,6 +1920,9 @@ bool AsmPrinter::doFinalization(Module &M) {
   // Emit bytes for llvm.commandline metadata.
   emitModuleCommandLines(M);
 
+  // Emit bytes for .bom metadata
+  emitModuleGitBom(M);
+
   // Emit __morestack address if needed for indirect calls.
   if (MMI->usesMorestackAddr()) {
     Align Alignment(1);
@@ -2412,6 +2415,28 @@ void AsmPrinter::emitModuleIdents(Module &M) {
       OutStreamer->emitIdent(S->getString());
     }
   }
+}
+
+void AsmPrinter::emitModuleGitBom(Module &M) {
+  MCSection *Bom = getObjFileLowering().getSectionForGitBom();
+  if (!Bom)
+    return;
+
+  const NamedMDNode *NMD = M.getNamedMetadata(".bom");
+  if (!NMD || !NMD->getNumOperands())
+    return;
+
+  OutStreamer->PushSection();
+  OutStreamer->SwitchSection(Bom);
+
+  for (unsigned i = 0, e = NMD->getNumOperands(); i != e; ++i) {
+    const MDNode *N = NMD->getOperand(i);
+    assert(N->getNumOperands() == 1 &&
+           ".bom metadata entry can have only one operand");
+    const MDString *S = cast<MDString>(N->getOperand(0));
+    OutStreamer->emitBytes(S->getString());
+  }
+  OutStreamer->PopSection();
 }
 
 void AsmPrinter::emitModuleCommandLines(Module &M) {

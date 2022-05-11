@@ -56,6 +56,7 @@
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/SHA1.h"
 #include "llvm/Support/TarWriter.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TimeProfiler.h"
@@ -1032,6 +1033,7 @@ static void readConfigs(opt::InputArgList &args) {
   config->fortranCommon =
       args.hasFlag(OPT_fortran_common, OPT_no_fortran_common, true);
   config->gcSections = args.hasFlag(OPT_gc_sections, OPT_no_gc_sections, false);
+  config->gitBom = args.hasFlag(OPT_gitbom, OPT_no_gitbom, false);
   config->gnuUnique = args.hasFlag(OPT_gnu_unique, OPT_no_gnu_unique, true);
   config->gdbIndex = args.hasFlag(OPT_gdb_index, OPT_no_gdb_index, false);
   config->icf = getICF(args);
@@ -1737,6 +1739,22 @@ static void handleLibcall(StringRef name) {
     sym->extract();
 }
 
+// TODO: Move this to a common location. This is
+// being used by both clang and lld.
+static std::string convertToHex(StringRef Input) {
+  static const char *const LUT = "0123456789abcdef";
+  size_t Length = Input.size();
+
+  std::string Output;
+  Output.reserve(2 * Length);
+  for (size_t i = 0; i < Length; ++i) {
+    const unsigned char c = Input[i];
+    Output.push_back(LUT[c >> 4]);
+    Output.push_back(LUT[c & 15]);
+  }
+  return Output;
+}
+
 // Handle --dependency-file=<path>. If that option is given, lld creates a
 // file at a given path with the following contents:
 //
@@ -1796,6 +1814,18 @@ static void writeDependencyFile() {
   for (StringRef path : config->dependencyFiles) {
     os << " \\\n ";
     printFilename(os, path);
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+        llvm::MemoryBuffer::getFile(path, /*IsText=*/true);
+    if (!fileBuf) {
+      error("\n error opening " + path);
+    }
+    llvm::SHA1 Hash;
+    std::string initData =
+        "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+    Hash.update(StringRef(initData));
+    Hash.update(fileBuf.get()->getBuffer());
+    auto Result = Hash.final();
+    std::string result = convertToHex(Result);
   }
   os << "\n";
 
