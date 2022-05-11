@@ -61,6 +61,7 @@
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MD5.h"
+#include "llvm/Support/SHA1.h"
 #include "llvm/Support/TimeProfiler.h"
 #include "llvm/Support/X86TargetParser.h"
 
@@ -850,6 +851,9 @@ void CodeGenModule::Release() {
 
   if (!getCodeGenOpts().RecordCommandLine.empty())
     EmitCommandLineMetadata();
+
+  if (!getCodeGenOpts().RecordGitBom.empty())
+    EmitGitBomMetadata();
 
   if (!getCodeGenOpts().StackProtectorGuard.empty())
     getModule().setStackProtectorGuard(getCodeGenOpts().StackProtectorGuard);
@@ -6366,6 +6370,98 @@ void CodeGenModule::EmitCommandLineMetadata() {
 
   llvm::Metadata *CommandLineNode[] = {llvm::MDString::get(Ctx, CommandLine)};
   CommandLineMetadata->addOperand(llvm::MDNode::get(Ctx, CommandLineNode));
+}
+
+static std::string convertToHex(StringRef Input) {
+  static const char *const LUT = "0123456789abcdef";
+  size_t Length = Input.size();
+
+  std::string Output;
+  Output.reserve(2 * Length);
+  for (size_t i = 0; i < Length; ++i) {
+    const unsigned char c = Input[i];
+    Output.push_back(LUT[c >> 4]);
+    Output.push_back(LUT[c & 15]);
+  }
+  return Output;
+}
+
+static std::string getHash(std::string Filename, DiagnosticsEngine &Diags) {
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+      llvm::MemoryBuffer::getFile(Filename, /*IsText=*/true);
+  if (!fileBuf) {
+    Diags.Report(diag::err_fe_error_opening) << Filename;
+    return std::string();
+  }
+
+  llvm::SHA1 Hash;
+  std::string initData =
+      "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(fileBuf.get()->getBuffer());
+  auto Result = Hash.final();
+  return convertToHex(Result);
+}
+
+/// This function computes the gitref to be written into the .bom section.
+/// It also creates the file that contains the gitrefs of all the
+/// dependencies. The file is stored in a subdirectory that is named
+/// with the first two characters of the gitref(SHA1) and the filename
+/// is the remaining 38 characters.
+std::string
+CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
+  llvm::SHA1 Hash;
+  std::string hashContents, gitRef, gitRefHex;
+  std::vector<std::string> DepLines;
+  for (auto file : Deps) {
+    std::string Line = "blob " + getHash(file, getDiags()) + "\n";
+    DepLines.push_back(Line);
+  }
+  std::sort(DepLines.begin(), DepLines.end());
+  for (auto line : DepLines) {
+    hashContents.append(line);
+  }
+  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(hashContents);
+  auto Result = Hash.final();
+  gitRefHex = convertToHex(Result);
+  gitRef = Result.str();
+
+  SmallString<128> gitRefPath(getCodeGenOpts().RecordGitBom);
+  llvm::sys::path::append(gitRefPath, gitRefHex.substr(0, 2));
+  std::error_code EC;
+  EC = llvm::sys::fs::create_directory(gitRefPath, true);
+  if (EC) {
+    Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
+    return gitRef;
+  }
+
+  llvm::sys::path::append(gitRefPath, gitRefHex.substr(2));
+  llvm::raw_fd_ostream OS(gitRefPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    DiagnosticsEngine &Diags = getDiags();
+    Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
+    return gitRef;
+  }
+  OS << hashContents;
+  return gitRef;
+}
+
+/// Emit .bom section
+void CodeGenModule::EmitGitBomMetadata() {
+  llvm::NamedMDNode *GitBomMetadata =
+      TheModule.getOrInsertNamedMetadata(".bom");
+
+  assert(!getCodeGenOpts().BomDependencies->empty() &&
+         "There should have been atleast one Bom dependency(source file).");
+
+  std::string gitRef =
+      ComputeGitBomMetadata(*(getCodeGenOpts().BomDependencies));
+
+  llvm::LLVMContext &Ctx = TheModule.getContext();
+  llvm::Metadata *GitBomNode[] = {llvm::MDString::get(Ctx, gitRef)};
+  GitBomMetadata->addOperand(llvm::MDNode::get(Ctx, GitBomNode));
 }
 
 void CodeGenModule::EmitCoverageFile() {

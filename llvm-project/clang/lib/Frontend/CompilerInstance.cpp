@@ -494,9 +494,13 @@ void CompilerInstance::createPreprocessor(TranslationUnitKind TUKind) {
   }
 
   // Handle generating dependencies, if requested.
-  const DependencyOutputOptions &DepOpts = getDependencyOutputOpts();
-  if (!DepOpts.OutputFile.empty())
+  DependencyOutputOptions &DepOpts = getDependencyOutputOpts();
+  if (!DepOpts.OutputFile.empty()) {
+    DepOpts.BomDependencies = (std::make_shared<std::vector<std::string>>());
     addDependencyCollector(std::make_shared<DependencyFileGenerator>(DepOpts));
+    CodeGenOptions &CGOpts = getCodeGenOpts();
+    CGOpts.BomDependencies = DepOpts.BomDependencies;
+  }
   if (!DepOpts.DOTOutputFile.empty())
     AttachDependencyGraphGen(*PP, DepOpts.DOTOutputFile,
                              getHeaderSearchOpts().Sysroot);
