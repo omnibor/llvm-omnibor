@@ -334,6 +334,11 @@ template <class ELFT> void elf::createSyntheticSections() {
       add(*in.mipsReginfo);
   }
 
+  if (config->gitBom) {
+    if ((in.gitBom = BomSection<ELFT>::create()))
+      add(*in.gitBom);
+  }
+
   StringRef relaDynName = config->isRela ? ".rela.dyn" : ".rel.dyn";
 
   for (Partition &part : partitions) {
