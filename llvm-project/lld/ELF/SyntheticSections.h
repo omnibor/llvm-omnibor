@@ -971,6 +971,19 @@ private:
   size_t shardOffsets[numShards];
 };
 
+// .bom section.
+template <class ELFT> class BomSection final : public SyntheticSection {
+
+public:
+  static std::unique_ptr<BomSection> create();
+  BomSection(std::string gitRef);
+  size_t getSize() const override { return gitRef.size(); }
+  void writeTo(uint8_t *buf) override;
+
+private:
+  std::string gitRef;
+};
+
 // .MIPS.abiflags section.
 template <class ELFT>
 class MipsAbiFlagsSection final : public SyntheticSection {
@@ -1237,6 +1250,7 @@ struct InStruct {
   std::unique_ptr<InputSection> attributes;
   std::unique_ptr<BssSection> bss;
   std::unique_ptr<BssSection> bssRelRo;
+  std::unique_ptr<SyntheticSection> gitBom;
   std::unique_ptr<GotSection> got;
   std::unique_ptr<GotPltSection> gotPlt;
   std::unique_ptr<IgotPltSection> igotPlt;

@@ -6805,6 +6805,27 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *Exec = D.getClangProgramPath();
 
+  auto GitBomRecordSwitches = Args.hasFlag(
+      options::OPT_frecord_gitbom, options::OPT_fno_record_gitbom, false);
+
+  if (GitBomRecordSwitches) {
+    SmallString<128> OutputPath;
+    CmdArgs.push_back("-record-gitbom");
+    // Pass the dir name where the gitbom file should be created.
+    if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
+      OutputPath = OutputOpt->getValue();
+      llvm::sys::path::remove_filename(OutputPath);
+    }
+    llvm::sys::path::append(OutputPath, ".gitbom");
+    llvm::sys::path::append(OutputPath, "object");
+    CmdArgs.push_back(Args.MakeArgString(OutputPath));
+    // Create the .bom/objects directory
+    auto EC =
+        llvm::sys::fs::create_directories(OutputPath, /*IgnoreExisting=*/true);
+    if (EC)
+      D.Diag(diag::err_drv_no_such_file) << OutputPath;
+  }
+
   // Optionally embed the -cc1 level arguments into the debug info or a
   // section, for build analysis.
   // Also record command line arguments into the debug info if

@@ -66,6 +66,13 @@ public:
   virtual void attachToPreprocessor(Preprocessor &PP);
   virtual void attachToASTReader(ASTReader &R);
   ArrayRef<std::string> getDependencies() const { return Dependencies; }
+  ArrayRef<std::string> getBomDependencies() const { return *BomDependencies; }
+  std::shared_ptr<std::vector<std::string>> getBomDependenciesPtr() const {
+    return BomDependencies;
+  }
+  void setBomDependenciesPtr(std::shared_ptr<std::vector<std::string>> Deps) {
+    BomDependencies = Deps;
+  }
 
   /// Called when a new file is seen. Return true if \p Filename should be added
   /// to the list of dependencies.
@@ -94,6 +101,36 @@ protected:
 private:
   llvm::StringSet<> Seen;
   std::vector<std::string> Dependencies;
+  std::shared_ptr<std::vector<std::string>> BomDependencies;
+};
+
+// Duplicating FileGenerator for generating BomDependenciesas the semantics
+// of BomDependencies and -MD could differ. For example, system headers are
+// always treated as a dependency for gitbom.
+class BomDependencyGenerator : public DependencyCollector {
+public:
+  BomDependencyGenerator(const DependencyOutputOptions &Opts);
+
+  void attachToPreprocessor(Preprocessor &PP) override;
+
+  void finishedMainFile(DiagnosticsEngine &Diags) override{};
+
+  bool needSystemDependencies() final override { return IncludeSystemHeaders; }
+
+  bool sawDependency(StringRef Filename, bool FromModule, bool IsSystem,
+                     bool IsModuleFile, bool IsMissing) final override;
+
+  // TODO: Some of these fields may not be necessary for BomDependencyGenerator.
+private:
+  std::string OutputFile;
+  std::vector<std::string> Targets;
+  bool IncludeSystemHeaders;
+  bool PhonyTarget;
+  bool AddMissingHeaderDeps;
+  bool SeenMissingHeader;
+  bool IncludeModuleFiles;
+  DependencyOutputFormat OutputFormat;
+  unsigned InputFileIndex;
 };
 
 /// Builds a dependency file when attached to a Preprocessor (for includes) and

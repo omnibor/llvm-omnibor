@@ -554,6 +554,8 @@
 // CHECK-RECORD-GCC-SWITCHES: "-record-command-line"
 // CHECK-NO-RECORD-GCC-SWITCHES-NOT: "-record-command-line"
 // CHECK-RECORD-GCC-SWITCHES-ERROR: error: unsupported option '-frecord-command-line' for target
+// CHECK-RECORD-GITBOM: "-record-gitbom"
+// CHECK-RECORD-GITBOM-NOT: "-record-gitbom"
 // Test when clang is in a path containing a space.
 // The initial `rm` is a workaround for https://openradar.appspot.com/FB8914243
 // (Scenario: Run tests once, `clang` gets copied and run at new location and signature
@@ -568,6 +570,8 @@
 // Clean up copy of large binary copied into temp directory to avoid bloat.
 // RUN: rm -f "%t.r/with spaces/clang" || true
 
+// RUN: %clang -### -S -target x86_64-unknown-linux -frecord-gitbom %s 2>&1 | FileCheck -check-prefix=CHECK-RECORD-GITBOM %s
+// RUN: %clang -### -S -target x86_64-unknown-linux -fno-record-gitbom %s 2>&1 | FileCheck -check-prefix=CHECK-NO-RECORD-GITBOM %s
 // RUN: %clang -### -S -ftrivial-auto-var-init=uninitialized %s 2>&1 | FileCheck -check-prefix=CHECK-TRIVIAL-UNINIT %s
 // RUN: %clang -### -S -ftrivial-auto-var-init=pattern %s 2>&1 | FileCheck -check-prefix=CHECK-TRIVIAL-PATTERN %s
 // RUN: %clang -### -S -ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang %s 2>&1 | FileCheck -check-prefix=CHECK-TRIVIAL-ZERO-GOOD %s
