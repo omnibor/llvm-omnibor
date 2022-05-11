@@ -1340,6 +1340,10 @@ def frecord_command_line : Flag<["-"], "frecord-command-line">,
   Group<f_clang_Group>;
 def fno_record_command_line : Flag<["-"], "fno-record-command-line">,
   Group<f_clang_Group>;
+def frecord_gitbom : Flag<["-"], "frecord-gitbom">,
+  Group<f_clang_Group>;
+def fno_record_gitbom: Flag<["-"], "fno-record-gitbom">,
+  Group<f_clang_Group>;
 def : Flag<["-"], "frecord-gcc-switches">, Alias<frecord_command_line>;
 def : Flag<["-"], "fno-record-gcc-switches">, Alias<fno_record_command_line>;
 def fcommon : Flag<["-"], "fcommon">, Group<f_Group>,
@@ -4984,6 +4988,9 @@ def dwarf_debug_flags : Separate<["-"], "dwarf-debug-flags">,
 def record_command_line : Separate<["-"], "record-command-line">,
   HelpText<"The string to embed in the .LLVM.command.line section.">,
   MarshallingInfoString<CodeGenOpts<"RecordCommandLine">>;
+def record_gitbom: Separate<["-"], "record-gitbom">,
+  HelpText<"The string to embed in the .bom section.">,
+  MarshallingInfoString<CodeGenOpts<"RecordGitBom">>;
 def compress_debug_sections_EQ : Joined<["-", "--"], "compress-debug-sections=">,
     HelpText<"DWARF debug sections compression type">, Values<"none,zlib">,
     NormalizedValuesScope<"llvm::DebugCompressionType">, NormalizedValues<["None", "Z"]>,

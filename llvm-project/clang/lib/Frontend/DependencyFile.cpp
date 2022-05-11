@@ -10,11 +10,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "clang/Frontend/Utils.h"
 #include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Frontend/DependencyOutputOptions.h"
 #include "clang/Frontend/FrontendDiagnostic.h"
+#include "clang/Frontend/Utils.h"
 #include "clang/Lex/DirectoryLookup.h"
 #include "clang/Lex/ModuleMap.h"
 #include "clang/Lex/PPCallbacks.h"
@@ -23,7 +23,9 @@
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/FileSystem.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
+#include "llvm/Support/SHA1.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
@@ -154,6 +156,8 @@ bool DependencyCollector::addDependency(StringRef Filename) {
 
   if (Seen.insert(SearchPath).second) {
     Dependencies.push_back(std::string(Filename));
+    if (BomDependencies)
+      BomDependencies->push_back(std::string(Filename));
     return true;
   }
   return false;
@@ -182,6 +186,42 @@ void DependencyCollector::attachToPreprocessor(Preprocessor &PP) {
 }
 void DependencyCollector::attachToASTReader(ASTReader &R) {
   R.addListener(std::make_unique<DepCollectorASTListener>(*this));
+}
+
+BomDependencyGenerator::BomDependencyGenerator(
+    const DependencyOutputOptions &Opts)
+    : OutputFile(Opts.OutputFile), Targets(Opts.Targets),
+      IncludeSystemHeaders(1), PhonyTarget(Opts.UsePhonyTargets),
+      AddMissingHeaderDeps(Opts.AddMissingHeaderDeps), SeenMissingHeader(false),
+      IncludeModuleFiles(Opts.IncludeModuleFiles),
+      OutputFormat(Opts.OutputFormat), InputFileIndex(0) {
+  setBomDependenciesPtr(Opts.BomDependencies);
+}
+
+void BomDependencyGenerator::attachToPreprocessor(Preprocessor &PP) {
+  // Disable the "file not found" diagnostic if the -MG option was given.
+  if (AddMissingHeaderDeps)
+    PP.SetSuppressIncludeNotFoundError(true);
+
+  DependencyCollector::attachToPreprocessor(PP);
+}
+
+bool BomDependencyGenerator::sawDependency(StringRef Filename, bool FromModule,
+                                           bool IsSystem, bool IsModuleFile,
+                                           bool IsMissing) {
+  if (IsMissing) {
+    // If a file that is in the include directive is missing, then its hash
+    // cannot be computed. So do not consider this as a bom dependency.
+    return false;
+  }
+  if (IsModuleFile && !IncludeModuleFiles)
+    return false;
+
+  if (isSpecialFilename(Filename))
+    return false;
+
+  // System headers are to be included when computing bom dependency.
+  return true;
 }
 
 DependencyFileGenerator::DependencyFileGenerator(
