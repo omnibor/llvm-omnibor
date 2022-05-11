@@ -6807,13 +6807,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   auto GitBomRecordSwitches = Args.hasFlag(
       options::OPT_frecord_gitbom, options::OPT_fno_record_gitbom, false);
-  // GITBOM TODO:
-  // Eliminate the need to pass -MD with -frecord-gitbom option.
-  Arg *MD = Args.getLastArg(options::OPT_MD);
-  if (GitBomRecordSwitches && !MD)
-    D.Diag(diag::warn_drv_gitbom_requires_md);
 
-  if (GitBomRecordSwitches && MD) {
+  if (GitBomRecordSwitches) {
     SmallString<128> OutputPath;
     CmdArgs.push_back("-record-gitbom");
     // Pass the dir name where the gitbom file should be created.

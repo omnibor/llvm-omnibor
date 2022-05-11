@@ -104,6 +104,35 @@ private:
   std::shared_ptr<std::vector<std::string>> BomDependencies;
 };
 
+// Duplicating FileGenerator for generating BomDependenciesas the semantics
+// of BomDependencies and -MD could differ. For example, system headers are
+// always treated as a dependency for gitbom.
+class BomDependencyGenerator : public DependencyCollector {
+public:
+  BomDependencyGenerator(const DependencyOutputOptions &Opts);
+
+  void attachToPreprocessor(Preprocessor &PP) override;
+
+  void finishedMainFile(DiagnosticsEngine &Diags) override{};
+
+  bool needSystemDependencies() final override { return IncludeSystemHeaders; }
+
+  bool sawDependency(StringRef Filename, bool FromModule, bool IsSystem,
+                     bool IsModuleFile, bool IsMissing) final override;
+
+  // TODO: Some of these fields may not be necessary for BomDependencyGenerator.
+private:
+  std::string OutputFile;
+  std::vector<std::string> Targets;
+  bool IncludeSystemHeaders;
+  bool PhonyTarget;
+  bool AddMissingHeaderDeps;
+  bool SeenMissingHeader;
+  bool IncludeModuleFiles;
+  DependencyOutputFormat OutputFormat;
+  unsigned InputFileIndex;
+};
+
 /// Builds a dependency file when attached to a Preprocessor (for includes) and
 /// ASTReader (for module imports), and writes it out at the end of processing
 /// a source file.  Users should attach to the ast reader whenever a module is
@@ -136,7 +165,6 @@ private:
   bool IncludeModuleFiles;
   DependencyOutputFormat OutputFormat;
   unsigned InputFileIndex;
-  std::shared_ptr<std::vector<std::string>> BomFiles;
 };
 
 /// Collects the dependencies for imported modules into a directory.  Users

@@ -156,7 +156,8 @@ bool DependencyCollector::addDependency(StringRef Filename) {
 
   if (Seen.insert(SearchPath).second) {
     Dependencies.push_back(std::string(Filename));
-    BomDependencies->push_back(std::string(Filename));
+    if (BomDependencies)
+      BomDependencies->push_back(std::string(Filename));
     return true;
   }
   return false;
@@ -187,6 +188,42 @@ void DependencyCollector::attachToASTReader(ASTReader &R) {
   R.addListener(std::make_unique<DepCollectorASTListener>(*this));
 }
 
+BomDependencyGenerator::BomDependencyGenerator(
+    const DependencyOutputOptions &Opts)
+    : OutputFile(Opts.OutputFile), Targets(Opts.Targets),
+      IncludeSystemHeaders(1), PhonyTarget(Opts.UsePhonyTargets),
+      AddMissingHeaderDeps(Opts.AddMissingHeaderDeps), SeenMissingHeader(false),
+      IncludeModuleFiles(Opts.IncludeModuleFiles),
+      OutputFormat(Opts.OutputFormat), InputFileIndex(0) {
+  setBomDependenciesPtr(Opts.BomDependencies);
+}
+
+void BomDependencyGenerator::attachToPreprocessor(Preprocessor &PP) {
+  // Disable the "file not found" diagnostic if the -MG option was given.
+  if (AddMissingHeaderDeps)
+    PP.SetSuppressIncludeNotFoundError(true);
+
+  DependencyCollector::attachToPreprocessor(PP);
+}
+
+bool BomDependencyGenerator::sawDependency(StringRef Filename, bool FromModule,
+                                           bool IsSystem, bool IsModuleFile,
+                                           bool IsMissing) {
+  if (IsMissing) {
+    // If a file that is in the include directive is missing, then its hash
+    // cannot be computed. So do not consider this as a bom dependency.
+    return false;
+  }
+  if (IsModuleFile && !IncludeModuleFiles)
+    return false;
+
+  if (isSpecialFilename(Filename))
+    return false;
+
+  // System headers are to be included when computing bom dependency.
+  return true;
+}
+
 DependencyFileGenerator::DependencyFileGenerator(
     const DependencyOutputOptions &Opts)
     : OutputFile(Opts.OutputFile), Targets(Opts.Targets),
@@ -195,7 +232,6 @@ DependencyFileGenerator::DependencyFileGenerator(
       AddMissingHeaderDeps(Opts.AddMissingHeaderDeps), SeenMissingHeader(false),
       IncludeModuleFiles(Opts.IncludeModuleFiles),
       OutputFormat(Opts.OutputFormat), InputFileIndex(0) {
-  setBomDependenciesPtr(Opts.BomDependencies);
   for (const auto &ExtraDep : Opts.ExtraDeps) {
     if (addDependency(ExtraDep.first))
       ++InputFileIndex;

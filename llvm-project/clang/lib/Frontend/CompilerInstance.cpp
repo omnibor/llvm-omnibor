@@ -496,8 +496,11 @@ void CompilerInstance::createPreprocessor(TranslationUnitKind TUKind) {
   // Handle generating dependencies, if requested.
   DependencyOutputOptions &DepOpts = getDependencyOutputOpts();
   if (!DepOpts.OutputFile.empty()) {
-    DepOpts.BomDependencies = (std::make_shared<std::vector<std::string>>());
     addDependencyCollector(std::make_shared<DependencyFileGenerator>(DepOpts));
+  }
+  if (!getCodeGenOpts().RecordGitBom.empty()) {
+    DepOpts.BomDependencies = (std::make_shared<std::vector<std::string>>());
+    addDependencyCollector(std::make_shared<BomDependencyGenerator>(DepOpts));
     CodeGenOptions &CGOpts = getCodeGenOpts();
     CGOpts.BomDependencies = DepOpts.BomDependencies;
   }
