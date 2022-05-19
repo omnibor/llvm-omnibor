@@ -2,7 +2,7 @@
 # RUN: llvm-mc -filetype=obj -triple=x86_64-pc-linux %S/Inputs/gitbom.s -o %t/gitbom.o
 # RUN: ld.lld %t/gitbom.o -e main --gitbom -o %t/gitbom.exe
 # RUN: llvm-readobj -p ".bom" %t/gitbom.exe | FileCheck --check-prefix=GITBOM %s
-# RUN: cat %t/.gitbom/object/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
+# RUN: cat %t/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
 # GITBOM: File: {{.*}}
 # GITBOM-NEXT: Format: elf64-x86-64
 # GITBOM-NEXT: Arch: x86_64
