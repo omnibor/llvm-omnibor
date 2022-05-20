@@ -6817,7 +6817,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       llvm::sys::path::remove_filename(OutputPath);
     }
     llvm::sys::path::append(OutputPath, ".gitbom");
-    llvm::sys::path::append(OutputPath, "object");
+    llvm::sys::path::append(OutputPath, "objects");
     CmdArgs.push_back(Args.MakeArgString(OutputPath));
     // Create the .bom/objects directory
     auto EC =

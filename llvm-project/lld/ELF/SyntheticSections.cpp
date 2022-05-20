@@ -189,7 +189,7 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
     SmallString<128> CurDir("./");
     gitRefPath = CurDir;
   }
-  llvm::sys::path::append(gitRefPath, ".gitbom/object");
+  llvm::sys::path::append(gitRefPath, ".gitbom/objects");
   llvm::sys::path::append(gitRefPath, gitRef.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directories(gitRefPath, true);
