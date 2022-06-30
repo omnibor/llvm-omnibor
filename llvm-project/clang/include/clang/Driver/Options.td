@@ -1342,6 +1342,8 @@ def fno_record_command_line : Flag<["-"], "fno-record-command-line">,
   Group<f_clang_Group>;
 def frecord_gitbom : Flag<["-"], "frecord-gitbom">,
   Group<f_clang_Group>;
+def frecord_gitbom_EQ : Joined<["-"], "frecord-gitbom=">,
+  Group<f_clang_Group>, MetaVarName<"<directory>">;
 def fno_record_gitbom: Flag<["-"], "fno-record-gitbom">,
   Group<f_clang_Group>;
 def : Flag<["-"], "frecord-gcc-switches">, Alias<frecord_command_line>;
