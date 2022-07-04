@@ -334,7 +334,7 @@ template <class ELFT> void elf::createSyntheticSections() {
       add(*in.mipsReginfo);
   }
 
-  if (config->gitBom) {
+  if (config->gitBomDir.length()) {
     if ((in.gitBom = BomSection<ELFT>::create()))
       add(*in.gitBom);
   }

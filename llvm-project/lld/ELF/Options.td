@@ -55,6 +55,10 @@ def build_id: F<"build-id">, HelpText<"Alias for --build-id=fast">;
 def build_id_eq: J<"build-id=">, HelpText<"Generate build ID note">,
   MetaVarName<"[fast,md5,sha1,uuid,0x<hexstring>]">;
 
+def gitbom: F<"gitbom">, HelpText<"Generate gitBOM data">;
+def gitbom_eq: J<"gitbom=">, HelpText<"Generate gitBOM data in the given directory">,
+  MetaVarName<"<dir>">;
+
 defm check_sections: B<"check-sections",
     "Check section addresses for overlaps (default)",
     "Do not check section addresses for overlaps">;
@@ -233,10 +237,6 @@ defm gc_sections: B<"gc-sections",
 defm gdb_index: BB<"gdb-index",
     "Generate .gdb_index section",
     "Do not generate .gdb_index section (default)">;
-
-defm gitbom: BB<"gitbom",
-  "Enable generation of .bom section",
-  "Disable generation of .bom section">;
 
 defm gnu_unique: BB<"gnu-unique",
   "Enable STB_GNU_UNIQUE symbol binding (default)",
