@@ -7,7 +7,7 @@
 // RUN: %clang -c -frecord-gitbom=%t/gitbomdir -o %t/gitbom_2.o %S/Inputs/gitbom.c -I%S/Inputs/gitbom.h
 // RUN: cat %t/gitbomdir/.gitbom/objects/50/16da29beed4d19143174ae53d5a69d5fa2afa4 | FileCheck --check-prefix=BOM_FILE_CONTENTS %s
 
-// RUN: env LLVM_GITBOM_DIR="%t/env_gitbom_dir" %clang -c -frecord-gitbom=%t/gitbomdir -o %t/gitbom_3.o %S/Inputs/gitbom.c -I%S/Inputs/gitbom.h
+// RUN: env GITBOM_DIR="%t/env_gitbom_dir" %clang -c -frecord-gitbom=%t/gitbomdir -o %t/gitbom_3.o %S/Inputs/gitbom.c -I%S/Inputs/gitbom.h
 // RUN: cat %t/env_gitbom_dir/.gitbom/objects/50/16da29beed4d19143174ae53d5a69d5fa2afa4 | FileCheck --check-prefix=BOM_FILE_CONTENTS %s
 // BOM_IDENTIFIER: [     0] P..)..M..1t.S..._...
 // BOM_FILE_CONTENTS: blob 6e00bf3ad31d164ffc9a1a64a377857607a24085

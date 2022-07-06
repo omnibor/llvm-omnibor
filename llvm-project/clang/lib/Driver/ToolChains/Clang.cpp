@@ -6814,11 +6814,11 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-record-gitbom");
 
     // Determine directory to store gitbom files in this order of precedence.
-    // 1. If LLVM_GITBOM_DIR environment variable is set, use this location.
+    // 1. If GITBOM_DIR environment variable is set, use this location.
     // 2. Use the directory name passed with frecord-gitbom option.
     // 3. Default is to write the bom files in the same directory as the object
     // file.
-    if (char *env = ::getenv("LLVM_GITBOM_DIR"))
+    if (char *env = ::getenv("GITBOM_DIR"))
       OutputPath = env;
     else {
       auto GitBomDir = Args.getLastArg(options::OPT_frecord_gitbom_EQ);

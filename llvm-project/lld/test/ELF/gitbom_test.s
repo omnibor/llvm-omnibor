@@ -7,7 +7,7 @@
 # RUN: ld.lld %t/gitbom.o -e main --gitbom=%t/gitbom_dir -o %t/gitbom.exe
 # RUN: cat %t/gitbom_dir/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
 
-# RUN: env LLVM_GITBOM_DIR="%t/env_gitbom_dir" ld.lld %t/gitbom.o -e main --gitbom=%t/gitbom_dir -o %t/gitbom.exe
+# RUN: env GITBOM_DIR="%t/env_gitbom_dir" ld.lld %t/gitbom.o -e main --gitbom=%t/gitbom_dir -o %t/gitbom.exe
 # RUN: cat %t/env_gitbom_dir/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
 
 # GITBOM: File: {{.*}}

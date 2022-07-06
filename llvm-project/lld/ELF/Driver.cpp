@@ -1039,7 +1039,7 @@ static void readConfigs(opt::InputArgList &args) {
   if (gitBomArg) {
     SmallString<128> gitRefPath;
     // Environment variable takes precedence over the --gitbom= option.
-    const char *gitBomDir = getenv("LLVM_GITBOM_DIR");
+    const char *gitBomDir = getenv("GITBOM_DIR");
     if (gitBomDir) {
       gitRefPath = StringRef(gitBomDir);
     } else {
