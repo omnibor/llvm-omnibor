@@ -1036,25 +1036,26 @@ static void readConfigs(opt::InputArgList &args) {
 
   // GitBOM
   auto *gitBomArg = args.getLastArg(OPT_gitbom, OPT_gitbom_eq);
-  if (gitBomArg) {
-    SmallString<128> gitRefPath;
-    // Environment variable takes precedence over the --gitbom= option.
-    const char *gitBomDir = getenv("GITBOM_DIR");
-    if (gitBomDir) {
-      gitRefPath = StringRef(gitBomDir);
+  SmallString<128> gitRefPath;
+  // Environment variable takes precedence over the --gitbom= option.
+  const char *gitBomDir = getenv("GITBOM_DIR");
+  if (gitBomDir) {
+    gitRefPath = StringRef(gitBomDir);
+  }
+  // Process --gitbom option if env variable GITBOM_DIR is not set
+  if (gitRefPath.str().empty() && gitBomArg) {
+    if (gitBomArg->getOption().getID() == OPT_gitbom_eq) {
+      gitRefPath = gitBomArg->getValue();
     } else {
-      if (gitBomArg->getOption().getID() == OPT_gitbom_eq) {
-        gitRefPath = gitBomArg->getValue();
-      } else {
-        // choose default dir to store gitbom data
-        std::string filename = args.getLastArgValue(OPT_o).str();
-        gitRefPath = StringRef(filename);
-        if (gitRefPath.empty())
-          gitRefPath = StringRef("./");
-        else
-          llvm::sys::path::remove_filename(gitRefPath);
-      }
+      // choose default dir to store gitbom data
+      std::string filename = args.getLastArgValue(OPT_o).str();
+      gitRefPath = StringRef(filename);
+      llvm::sys::path::remove_filename(gitRefPath);
+      if (gitRefPath.empty())
+        gitRefPath = StringRef("./");
     }
+  }
+  if (!gitRefPath.empty()) {
     llvm::sys::path::append(gitRefPath, ".gitbom/objects");
     config->gitBomDir = gitRefPath.str().str();
     auto EC = llvm::sys::fs::create_directories(config->gitBomDir, true);

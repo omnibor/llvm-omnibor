@@ -6809,31 +6809,33 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       Args.hasFlag(options::OPT_frecord_gitbom, options::OPT_frecord_gitbom_EQ,
                    options::OPT_fno_record_gitbom, false);
 
-  if (GitBomRecordSwitches) {
-    SmallString<128> OutputPath;
-    CmdArgs.push_back("-record-gitbom");
-
-    // Determine directory to store gitbom files in this order of precedence.
-    // 1. If GITBOM_DIR environment variable is set, use this location.
-    // 2. Use the directory name passed with frecord-gitbom option.
-    // 3. Default is to write the bom files in the same directory as the object
-    // file.
-    if (char *env = ::getenv("GITBOM_DIR"))
-      OutputPath = env;
-    else {
-      auto GitBomDir = Args.getLastArg(options::OPT_frecord_gitbom_EQ);
-      if (GitBomDir) {
-        auto ArgValue = GitBomDir->getValue();
-        OutputPath = ArgValue;
-      }
-      // Pass the dir name where the object file is created.
-      else if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
-        OutputPath = OutputOpt->getValue();
-        llvm::sys::path::remove_filename(OutputPath);
-      }
+  // If GITBOM_DIR environment variable is set, generate gitbom data in the
+  // specified dir.
+  // Generate GitBOM data if frecord-gitbom option is set. Use the directory
+  // if specified along with the option, otherwise, the default is to write
+  // the bom files in the same directory as the object file.
+  SmallString<128> OutputPath;
+  if (char *env = ::getenv("GITBOM_DIR")) {
+    OutputPath = env;
+  }
+  if (OutputPath.str().empty() && GitBomRecordSwitches) {
+    auto GitBomDir = Args.getLastArg(options::OPT_frecord_gitbom_EQ);
+    if (GitBomDir) {
+      auto ArgValue = GitBomDir->getValue();
+      OutputPath = ArgValue;
     }
+    // Pass the dir name where the object file is created.
+    else if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
+      OutputPath = OutputOpt->getValue();
+      llvm::sys::path::remove_filename(OutputPath);
+      if (OutputPath.str().empty())
+        OutputPath = StringRef("./");
+    }
+  }
+  if (!OutputPath.str().empty()) {
     llvm::sys::path::append(OutputPath, ".gitbom");
     llvm::sys::path::append(OutputPath, "objects");
+    CmdArgs.push_back("-record-gitbom");
     CmdArgs.push_back(Args.MakeArgString(OutputPath));
     // Create the .bom/objects directory
     auto EC =
