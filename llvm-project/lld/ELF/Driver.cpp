@@ -1033,7 +1033,36 @@ static void readConfigs(opt::InputArgList &args) {
   config->fortranCommon =
       args.hasFlag(OPT_fortran_common, OPT_no_fortran_common, true);
   config->gcSections = args.hasFlag(OPT_gc_sections, OPT_no_gc_sections, false);
-  config->gitBom = args.hasFlag(OPT_gitbom, OPT_no_gitbom, false);
+
+  // GitBOM
+  auto *gitBomArg = args.getLastArg(OPT_gitbom, OPT_gitbom_eq);
+  SmallString<128> gitRefPath;
+  // Environment variable takes precedence over the --gitbom= option.
+  const char *gitBomDir = getenv("GITBOM_DIR");
+  if (gitBomDir) {
+    gitRefPath = StringRef(gitBomDir);
+  }
+  // Process --gitbom option if env variable GITBOM_DIR is not set
+  if (gitRefPath.str().empty() && gitBomArg) {
+    if (gitBomArg->getOption().getID() == OPT_gitbom_eq) {
+      gitRefPath = gitBomArg->getValue();
+    } else {
+      // choose default dir to store gitbom data
+      std::string filename = args.getLastArgValue(OPT_o).str();
+      gitRefPath = StringRef(filename);
+      llvm::sys::path::remove_filename(gitRefPath);
+      if (gitRefPath.empty())
+        gitRefPath = StringRef("./");
+    }
+  }
+  if (!gitRefPath.empty()) {
+    llvm::sys::path::append(gitRefPath, ".gitbom/objects");
+    config->gitBomDir = gitRefPath.str().str();
+    auto EC = llvm::sys::fs::create_directories(config->gitBomDir, true);
+    if (EC)
+      error("\n error opening " + config->gitBomDir);
+  }
+  config->dependencyFile = args.getLastArgValue(OPT_dependency_file);
   config->gnuUnique = args.hasFlag(OPT_gnu_unique, OPT_no_gnu_unique, true);
   config->gdbIndex = args.hasFlag(OPT_gdb_index, OPT_no_gdb_index, false);
   config->icf = getICF(args);

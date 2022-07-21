@@ -3,6 +3,24 @@
 # RUN: ld.lld %t/gitbom.o -e main --gitbom -o %t/gitbom.exe
 # RUN: llvm-readobj -p ".bom" %t/gitbom.exe | FileCheck --check-prefix=GITBOM %s
 # RUN: cat %t/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
+
+# RUN: ld.lld %t/gitbom.o -e main --gitbom=%t/gitbom_dir -o %t/gitbom_1.exe
+# RUN: llvm-readobj -p ".bom" %t/gitbom_1.exe | FileCheck --check-prefix=GITBOM %s
+# RUN: cat %t/gitbom_dir/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
+
+# RUN: env GITBOM_DIR="%t/env_gitbom_dir" ld.lld %t/gitbom.o -e main --gitbom=%t/gitbom_dir -o %t/gitbom_2.exe
+# RUN: llvm-readobj -p ".bom" %t/gitbom_2.exe | FileCheck --check-prefix=GITBOM %s
+# RUN: cat %t/env_gitbom_dir/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
+
+# RUN: rm -f %t/env_gitbom_dir/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a
+# RUN: env GITBOM_DIR="%t/env_gitbom_dir" ld.lld %t/gitbom.o -e main -o %t/gitbom_3.exe
+# RUN: llvm-readobj -p ".bom" %t/gitbom_3.exe | FileCheck --check-prefix=GITBOM %s
+# RUN: cat %t/env_gitbom_dir/.gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
+
+# RUN: env GITBOM_DIR= ld.lld %t/gitbom.o -e main --gitbom -o gitbom_4.exe
+# RUN: llvm-readobj -p ".bom" gitbom_4.exe | FileCheck --check-prefix=GITBOM %s
+# RUN: cat .gitbom/objects/05/ec1279f15fa8c76bab1645e5f2b2d1ba39c10a | FileCheck --check-prefix=BOM_FILE %s
+
 # GITBOM: File: {{.*}}
 # GITBOM-NEXT: Format: elf64-x86-64
 # GITBOM-NEXT: Arch: x86_64

@@ -126,8 +126,6 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
 
   FileHashBomMap BomMap;
   std::error_code ec;
-  std::string filename = config->outputFile.str();
-  StringRef BomFile = StringRef(filename);
   for (StringRef path : config->dependencyFiles) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
         llvm::MemoryBuffer::getFile(path, /*IsText=*/true);
@@ -182,14 +180,8 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
   auto Result = Hash.final();
   gitRef = convertToHex(Result);
 
-  // Generate Bom File
-  SmallString<128> gitRefPath(BomFile);
-  llvm::sys::path::remove_filename(gitRefPath);
-  if (gitRefPath.empty()) {
-    SmallString<128> CurDir("./");
-    gitRefPath = CurDir;
-  }
-  llvm::sys::path::append(gitRefPath, ".gitbom/objects");
+  SmallString<128> gitRefPath;
+  gitRefPath = StringRef(config->gitBomDir);
   llvm::sys::path::append(gitRefPath, gitRef.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directories(gitRefPath, true);
