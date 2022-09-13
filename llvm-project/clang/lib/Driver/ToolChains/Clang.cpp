@@ -6828,9 +6828,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     else if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
       OutputPath = OutputOpt->getValue();
       llvm::sys::path::remove_filename(OutputPath);
-      if (OutputPath.str().empty())
-        OutputPath = StringRef("./");
     }
+    if (OutputPath.str().empty())
+      OutputPath = StringRef("./");
   }
   if (!OutputPath.str().empty()) {
     llvm::sys::path::append(OutputPath, ".gitbom");
