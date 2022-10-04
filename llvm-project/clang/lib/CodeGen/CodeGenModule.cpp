@@ -853,7 +853,7 @@ void CodeGenModule::Release() {
     EmitCommandLineMetadata();
 
   if (!getCodeGenOpts().RecordGitBom.empty())
-    EmitGitBomMetadata();
+    EmitGitBomData();
 
   if (!getCodeGenOpts().StackProtectorGuard.empty())
     getModule().setStackProtectorGuard(getCodeGenOpts().StackProtectorGuard);
@@ -6403,21 +6403,25 @@ static std::string getHash(std::string Filename, DiagnosticsEngine &Diags) {
   return convertToHex(Result);
 }
 
-/// This function computes the gitref to be written into the .bom section.
-/// It also creates the file that contains the gitrefs of all the
-/// dependencies. The file is stored in a subdirectory that is named
-/// with the first two characters of the gitref(SHA1) and the filename
-/// is the remaining 38 characters.
-std::string
-CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
+/// This function computes the SHA1 gitoid to be written into the .bom section.
+/// It also creates the SHA1 GitBOM file that contains the artifact id of all
+/// the dependencies. The file is stored in a subdirectory that is named with
+/// the first two characters of the gitoid and the filename is the remaining
+/// characters.
+static std::string ComputeSHA1GitBomData(CodeGenModule &CGM,
+                                         std::vector<std::string> &Deps) {
   llvm::SHA1 Hash;
-  std::string hashContents, gitRef, gitRefHex;
+  std::string hashContents, gitoid, gitoidHex;
   std::vector<std::string> DepLines;
+  DiagnosticsEngine &Diags = CGM.getDiags();
+  // Header for the GitBOM document
+  DepLines.push_back("gitoid:blob:sha1\n");
+
   for (auto file : Deps) {
-    std::string Line = "blob " + getHash(file, getDiags()) + "\n";
+    std::string Line = "blob " + getHash(file, Diags) + "\n";
     DepLines.push_back(Line);
   }
-  std::sort(DepLines.begin(), DepLines.end());
+  std::sort(std::next(DepLines.begin()), DepLines.end());
   for (auto line : DepLines) {
     hashContents.append(line);
   }
@@ -6425,42 +6429,42 @@ CodeGenModule::ComputeGitBomMetadata(std::vector<std::string> &Deps) {
   Hash.update(StringRef(initData));
   Hash.update(hashContents);
   auto Result = Hash.final();
-  gitRefHex = convertToHex(Result);
-  gitRef = Result.str();
+  gitoidHex = convertToHex(Result);
+  gitoid = Result.str();
 
-  SmallString<128> gitRefPath(getCodeGenOpts().RecordGitBom);
-  llvm::sys::path::append(gitRefPath, gitRefHex.substr(0, 2));
+  SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordGitBom);
+  llvm::sys::path::append(gitoidPath, "sha1");
+  llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
   std::error_code EC;
-  EC = llvm::sys::fs::create_directory(gitRefPath, true);
+  EC = llvm::sys::fs::create_directories(gitoidPath, true);
   if (EC) {
-    Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
-    return gitRef;
+    Diags.Report(diag::err_fe_error_opening) << gitoidPath << EC.message();
+    return gitoid;
   }
 
-  llvm::sys::path::append(gitRefPath, gitRefHex.substr(2));
-  llvm::raw_fd_ostream OS(gitRefPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  llvm::sys::path::append(gitoidPath, gitoidHex.substr(2));
+  llvm::raw_fd_ostream OS(gitoidPath, EC, llvm::sys::fs::OF_TextWithCRLF);
   if (EC) {
-    DiagnosticsEngine &Diags = getDiags();
-    Diags.Report(diag::err_fe_error_opening) << gitRefPath << EC.message();
-    return gitRef;
+    Diags.Report(diag::err_fe_error_opening) << gitoidPath << EC.message();
+    return gitoid;
   }
   OS << hashContents;
-  return gitRef;
+  return gitoid;
 }
 
-/// Emit .bom section
-void CodeGenModule::EmitGitBomMetadata() {
+/// Emit .bom section and the Gitbom document
+void CodeGenModule::EmitGitBomData() {
   llvm::NamedMDNode *GitBomMetadata =
       TheModule.getOrInsertNamedMetadata(".bom");
 
   assert(!getCodeGenOpts().BomDependencies->empty() &&
          "There should have been atleast one Bom dependency(source file).");
 
-  std::string gitRef =
-      ComputeGitBomMetadata(*(getCodeGenOpts().BomDependencies));
+  std::string sha1_gitoid =
+      ComputeSHA1GitBomData(*this, *(getCodeGenOpts().BomDependencies));
 
   llvm::LLVMContext &Ctx = TheModule.getContext();
-  llvm::Metadata *GitBomNode[] = {llvm::MDString::get(Ctx, gitRef)};
+  llvm::Metadata *GitBomNode[] = {llvm::MDString::get(Ctx, sha1_gitoid)};
   GitBomMetadata->addOperand(llvm::MDNode::get(Ctx, GitBomNode));
 }
 
