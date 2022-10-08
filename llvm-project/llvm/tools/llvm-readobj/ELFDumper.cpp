@@ -5011,6 +5011,23 @@ static StringRef getDescAsStringRef(ArrayRef<uint8_t> Desc) {
 }
 
 template <typename ELFT>
+static bool printBOMNote(raw_ostream &OS, uint32_t NoteType,
+                         ArrayRef<uint8_t> Desc) {
+  switch (NoteType) {
+  case ELF::NT_GITBOM_SHA1:
+    OS << "   SHA1 GitOID: " << getGNUBuildId(Desc);
+    break;
+  case ELF::NT_GITBOM_SHA256:
+    OS << "   SHA256 GitOID: " << getGNUBuildId(Desc);
+    break;
+  default:
+    return false;
+  }
+  OS << '\n';
+  return true;
+}
+
+template <typename ELFT>
 static bool printGNUNote(raw_ostream &OS, uint32_t NoteType,
                          ArrayRef<uint8_t> Desc) {
   // Return true if we were able to pretty-print the note, false otherwise.
@@ -5341,6 +5358,11 @@ const NoteType GNUNoteTypes[] = {
     {ELF::NT_GNU_PROPERTY_TYPE_0, "NT_GNU_PROPERTY_TYPE_0 (property note)"},
 };
 
+const NoteType BOMNoteTypes[] = {
+    {ELF::NT_GITBOM_SHA1, "NT_GITBOM (SHA1 GITOID)"},
+    {ELF::NT_GITBOM_SHA256, "NT_GITBOM (SHA256 GITOID)"},
+};
+
 const NoteType FreeBSDCoreNoteTypes[] = {
     {ELF::NT_FREEBSD_THRMISC, "NT_THRMISC (thrmisc structure)"},
     {ELF::NT_FREEBSD_PROCSTAT_PROC, "NT_PROCSTAT_PROC (proc data)"},
@@ -5479,6 +5501,8 @@ StringRef getNoteTypeName(const typename ELFT::Note &Note, unsigned ELFType) {
   StringRef Name = Note.getName();
   if (Name == "GNU")
     return FindNote(GNUNoteTypes);
+  if (Name.startswith("GITBOM"))
+    return FindNote(BOMNoteTypes);
   if (Name == "FreeBSD") {
     if (ELFType == ELF::ET_CORE) {
       // FreeBSD also places the generic core notes in the FreeBSD namespace.
@@ -5625,6 +5649,9 @@ template <class ELFT> void GNUELFDumper<ELFT>::printNotes() {
     // owners/if we fail to pretty-print the contents.
     if (Name == "GNU") {
       if (printGNUNote<ELFT>(OS, Type, Descriptor))
+        return Error::success();
+    } else if (Name == "GITBOM") {
+      if (printBOMNote<ELFT>(OS, Type, Descriptor))
         return Error::success();
     } else if (Name == "FreeBSD") {
       if (Optional<FreeBSDNote> N =
@@ -6992,6 +7019,22 @@ template <class ELFT> void LLVMELFDumper<ELFT>::printAddrsig() {
 }
 
 template <typename ELFT>
+static bool printBOMNoteLLVMStyle(uint32_t NoteType, ArrayRef<uint8_t> Desc,
+                                  ScopedPrinter &W) {
+  switch (NoteType) {
+  default:
+    return false;
+  case ELF::NT_GITBOM_SHA1:
+    W.printString("SHA1 Gitoid", getGNUBuildId(Desc));
+    break;
+  case ELF::NT_GITBOM_SHA256:
+    W.printString("SHA256 Gitoid", getGNUBuildId(Desc));
+    break;
+  }
+  return true;
+}
+
+template <typename ELFT>
 static bool printGNUNoteLLVMStyle(uint32_t NoteType, ArrayRef<uint8_t> Desc,
                                   ScopedPrinter &W) {
   // Return true if we were able to pretty-print the note, false otherwise.
@@ -7093,6 +7136,9 @@ template <class ELFT> void LLVMELFDumper<ELFT>::printNotes() {
     // owners/if we fail to pretty-print the contents.
     if (Name == "GNU") {
       if (printGNUNoteLLVMStyle<ELFT>(Type, Descriptor, W))
+        return Error::success();
+    } else if (Name == "GITBOM") {
+      if (printBOMNoteLLVMStyle<ELFT>(Type, Descriptor, W))
         return Error::success();
     } else if (Name == "FreeBSD") {
       if (Optional<FreeBSDNote> N =

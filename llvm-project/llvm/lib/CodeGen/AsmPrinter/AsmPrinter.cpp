@@ -2422,20 +2422,32 @@ void AsmPrinter::emitModuleGitBom(Module &M) {
   if (!Bom)
     return;
 
-  const NamedMDNode *NMD = M.getNamedMetadata(".bom");
+  const NamedMDNode *NMD = M.getNamedMetadata(".note.gitbom");
   if (!NMD || !NMD->getNumOperands())
     return;
 
   OutStreamer->PushSection();
   OutStreamer->SwitchSection(Bom);
 
-  for (unsigned i = 0, e = NMD->getNumOperands(); i != e; ++i) {
-    const MDNode *N = NMD->getOperand(i);
-    assert(N->getNumOperands() == 1 &&
-           ".bom metadata entry can have only one operand");
-    const MDString *S = cast<MDString>(N->getOperand(0));
-    OutStreamer->emitBytes(S->getString());
-  }
+  const MDNode *N1 = NMD->getOperand(0);
+  assert(N1->getNumOperands() == 2 &&
+         ".bom metadata entry can have only two operands");
+  const MDString *SHA1 = cast<MDString>(N1->getOperand(0));
+  OutStreamer->emitInt32(7);                   // namesz
+  OutStreamer->emitInt32(SHA1->getLength());   // descsz
+  OutStreamer->emitInt32(ELF::NT_GITBOM_SHA1); // type
+  OutStreamer->emitBytes("GITBOM");            // name
+  OutStreamer->emitZeros(2);                   // padding
+  OutStreamer->emitBytes(SHA1->getString());   // sha1 gitoid
+
+  const MDString *SHA256 = cast<MDString>(N1->getOperand(1));
+  OutStreamer->emitInt32(7);                     // namesz
+  OutStreamer->emitInt32(SHA256->getLength());   // descsz
+  OutStreamer->emitInt32(ELF::NT_GITBOM_SHA256); // type
+  OutStreamer->emitBytes("GITBOM");              // name
+  OutStreamer->emitZeros(2);                     // padding
+  OutStreamer->emitBytes(SHA256->getString());   // sha256 gitoid
+
   OutStreamer->PopSection();
 }
 

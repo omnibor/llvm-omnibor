@@ -94,7 +94,8 @@ MergeInputSection *elf::createCommentSection() {
 // .bom section
 template <class ELFT>
 BomSection<ELFT>::BomSection(std::string gitRef)
-    : SyntheticSection(llvm::ELF::SHF_ALLOC, llvm::ELF::SHT_NOTE, 4, ".bom"),
+    : SyntheticSection(llvm::ELF::SHF_ALLOC, llvm::ELF::SHT_NOTE, 4,
+                       ".note.gitbom"),
       gitRef(gitRef) {}
 
 template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
@@ -121,6 +122,9 @@ static std::string convertToHex(StringRef Input) {
 template <class ELFT>
 std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
 
+  using Elf_Nhdr = typename ELFT::Nhdr;
+  using Elf_Note = typename ELFT::Note;
+
   using FileHashBomMap =
       std::map<std::string, std::pair<std::string, std::string>>;
 
@@ -144,19 +148,42 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
 
   bool create = false;
   for (InputSectionBase *sec : inputSections) {
-    if (sec->name == ".bom") {
+    if (sec->name == ".note.gitbom") {
       sec->markDead();
       create = true;
       std::string filename = toString(sec->file);
-      StringRef content = toStringRef(sec->data());
-      // TODO: check if the file exists in the map
-      FileHashBomMap::iterator Iter = BomMap.find(filename);
-      if (Iter != BomMap.end()) {
-        Iter->second.second = convertToHex(content.str());
+      // StringRef content = toStringRef(sec->data());
+      // retreive the sha1 gitoid
+
+      ArrayRef<uint8_t> data = sec->data();
+      while (!data.empty()) {
+        llvm::errs() << "\n reading note ";
+        // Read one NOTE record.
+        auto *nhdr = reinterpret_cast<const Elf_Nhdr *>(data.data());
+        if (data.size() < sizeof(Elf_Nhdr) || data.size() < nhdr->getSize())
+          fatal("data is too short");
+
+        Elf_Note note(*nhdr);
+        if (note.getName() != "GITBOM") {
+          data = data.slice(nhdr->getSize());
+          llvm::errs() << "\n not a gibom";
+          continue;
+        }
+
+        ArrayRef<uint8_t> desc = note.getDesc();
+        if (!desc.empty()) {
+          StringRef content = toStringRef(desc.data());
+          llvm::errs() << "\n sha1 gitoid = " << convertToHex(content.str());
+          // TODO: check if the file exists in the map
+          FileHashBomMap::iterator Iter = BomMap.find(filename);
+          if (Iter != BomMap.end()) {
+            Iter->second.second = convertToHex(content.str());
+          }
+        } else
+          llvm::errs() << "\n empty gitoid";
       }
     }
   }
-
   FileHashBomMap::iterator Iter;
   std::vector<std::string> DepLines;
   for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
