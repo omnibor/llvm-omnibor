@@ -29,6 +29,7 @@
 #include "llvm/ADT/SetOperations.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/BinaryFormat/Dwarf.h"
+#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/DebugInfo/DWARF/DWARFDebugPubTable.h"
 #include "llvm/Object/ELFObjectFile.h"
 #include "llvm/Support/Compression.h"
@@ -37,6 +38,7 @@
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/SHA1.h"
+#include "llvm/Support/SHA256.h"
 #include "llvm/Support/TimeProfiler.h"
 #include <cstdlib>
 #include <map>
@@ -53,6 +55,14 @@ using namespace lld::elf;
 using llvm::support::endian::read32le;
 using llvm::support::endian::write32le;
 using llvm::support::endian::write64le;
+
+struct Gitbom {
+  std::string sha1_artifact_id;
+  std::string sha1_gitoid;
+  std::string sha256_artifact_id;
+  std::string sha256_gitoid;
+};
+using FileHashBomMap = std::map<std::string, struct Gitbom>;
 
 constexpr size_t MergeNoTailSection::numShards;
 
@@ -93,15 +103,32 @@ MergeInputSection *elf::createCommentSection() {
 
 // .bom section
 template <class ELFT>
-BomSection<ELFT>::BomSection(std::string gitRef)
+BomSection<ELFT>::BomSection(std::string sha1_gitoid, std::string sha256_gitoid)
     : SyntheticSection(llvm::ELF::SHF_ALLOC, llvm::ELF::SHT_NOTE, 4,
                        ".note.gitbom"),
-      gitRef(gitRef) {}
+      sha1_Gitoid(sha1_gitoid), sha256_Gitoid(sha256_gitoid) {}
 
 template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
-  ArrayRef<uint8_t> contents = {(const uint8_t *)gitRef.data(),
-                                gitRef.size() + 1};
-  memcpy(buf, contents.data(), contents.size());
+  ArrayRef<uint8_t> sha1_contents = {(const uint8_t *)sha1_Gitoid.data(),
+                                     sha1_Gitoid.size()};
+  // sha1 Note section
+  write32(buf, 7);                                              // Name size
+  write32(buf + 4, sha1_contents.size());                       // Desc size
+  write32(buf + 8, NT_GITBOM_SHA1);                             // Type
+  memcpy(buf + 12, "GITBOM", 6);                                // Name string
+  memset(buf + 18, 0, 2);                                       // padding
+  memcpy(buf + 20, sha1_contents.data(), sha1_contents.size()); // GitOID
+
+  buf += sha1_contents.size() + 20;
+  ArrayRef<uint8_t> sha256_contents = {(const uint8_t *)sha256_Gitoid.data(),
+                                       sha256_Gitoid.size()};
+  // sha256 Note section
+  write32(buf, 7);                          // Name size
+  write32(buf + 4, sha256_contents.size()); // Desc size
+  write32(buf + 8, NT_GITBOM_SHA256);       // Type
+  memcpy(buf + 12, "GITBOM", 6);            // Name string
+  memset(buf + 18, 0, 2);                   // padding
+  memcpy(buf + 20, sha256_contents.data(), sha256_contents.size());
 }
 
 // TODO: Move this function.
@@ -119,33 +146,138 @@ static std::string convertToHex(StringRef Input) {
   return Output;
 }
 
-template <class ELFT>
-std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
+static void genArtifactIds(FileHashBomMap &BomMap) {
+  llvm::SHA1 SHA1_Hash;
+  llvm::SHA256 SHA256_Hash;
+  struct Gitbom bomData;
 
-  using Elf_Nhdr = typename ELFT::Nhdr;
-  using Elf_Note = typename ELFT::Note;
-
-  using FileHashBomMap =
-      std::map<std::string, std::pair<std::string, std::string>>;
-
-  FileHashBomMap BomMap;
-  std::error_code ec;
   for (StringRef path : config->dependencyFiles) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
         llvm::MemoryBuffer::getFile(path, /*IsText=*/true);
     if (!fileBuf) {
       error("\n error opening " + path);
     }
-    llvm::SHA1 Hash;
     std::string initData =
         "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
-    Hash.update(StringRef(initData));
-    Hash.update(fileBuf.get()->getBuffer());
-    auto Result = Hash.final();
-    std::string result = convertToHex(Result);
-    BomMap[path.str()] = std::make_pair(result, "");
-  }
 
+    // sha1
+    SHA1_Hash.update(StringRef(initData));
+    SHA1_Hash.update(fileBuf.get()->getBuffer());
+    auto Result_sha1 = SHA1_Hash.final();
+    bomData.sha1_artifact_id = convertToHex(Result_sha1);
+
+    // sha256
+    SHA256_Hash.update(StringRef(initData));
+    SHA256_Hash.update(fileBuf.get()->getBuffer());
+    auto Result_sha256 = SHA256_Hash.final();
+    bomData.sha256_artifact_id = convertToHex(Result_sha256);
+
+    BomMap[path.str()] = bomData;
+  }
+}
+
+static std::string createSHA1_BomFile(FileHashBomMap &BomMap) {
+
+  FileHashBomMap::iterator Iter;
+  std::vector<std::string> DepLines;
+  for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
+    std::string Line = "blob " + Iter->second.sha1_artifact_id;
+    if (!Iter->second.sha1_gitoid.empty()) {
+      Line.append(" bom " + Iter->second.sha1_gitoid + "\n");
+    } else
+      Line.append("\n");
+    DepLines.push_back(Line);
+  }
+  std::sort(DepLines.begin(), DepLines.end());
+  // Compute Hash
+  llvm::SHA1 Hash;
+  std::string hashContents, gitOid;
+  for (auto line : DepLines) {
+    hashContents.append(line);
+  }
+  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(hashContents);
+  auto Result = Hash.final();
+  gitOid = convertToHex(Result);
+
+  SmallString<128> gitOidPath;
+  gitOidPath = StringRef(config->gitBomDir);
+  llvm::sys::path::append(gitOidPath, "sha1");
+  llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
+  std::error_code EC;
+  EC = llvm::sys::fs::create_directories(gitOidPath, true);
+  if (EC) {
+    error("\n error opening " + gitOidPath);
+  }
+  llvm::sys::path::append(gitOidPath, gitOid.substr(2));
+  llvm::raw_fd_ostream OS(gitOidPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    error("\n error opening " + gitOidPath);
+  }
+  OS << hashContents;
+  return Result.str();
+}
+
+static std::string createSHA256_BomFile(FileHashBomMap &BomMap) {
+
+  FileHashBomMap::iterator Iter;
+  std::vector<std::string> DepLines;
+  for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
+    std::string Line = "blob " + Iter->second.sha256_artifact_id;
+    if (!Iter->second.sha256_gitoid.empty()) {
+      Line.append(" bom " + Iter->second.sha256_gitoid + "\n");
+    } else
+      Line.append("\n");
+    DepLines.push_back(Line);
+  }
+  std::sort(DepLines.begin(), DepLines.end());
+  // Compute Hash
+  llvm::SHA256 Hash;
+  std::string hashContents, gitOid;
+  for (auto line : DepLines) {
+    hashContents.append(line);
+  }
+  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(hashContents);
+  auto Result = Hash.final();
+  gitOid = convertToHex(Result);
+
+  SmallString<128> gitOidPath;
+  gitOidPath = StringRef(config->gitBomDir);
+  llvm::sys::path::append(gitOidPath, "sha256");
+  llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
+  std::error_code EC;
+  EC = llvm::sys::fs::create_directories(gitOidPath, true);
+  if (EC) {
+    error("\n error opening " + gitOidPath);
+  }
+  llvm::sys::path::append(gitOidPath, gitOid.substr(2));
+  llvm::raw_fd_ostream OS(gitOidPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    error("\n error opening " + gitOidPath);
+  }
+  OS << hashContents;
+  return Result.str();
+}
+
+static StringRef getDescAsStringRef(ArrayRef<uint8_t> Desc) {
+  return StringRef(reinterpret_cast<const char *>(Desc.data()), Desc.size());
+}
+
+template <class ELFT>
+std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
+
+  using Elf_Nhdr = typename ELFT::Nhdr;
+  using Elf_Note = typename ELFT::Note;
+
+  FileHashBomMap BomMap;
+
+  // Generate artifact ids for the dependencies
+  genArtifactIds(BomMap);
+
+  std::error_code ec;
   bool create = false;
   for (InputSectionBase *sec : inputSections) {
     if (sec->name == ".note.gitbom") {
@@ -157,7 +289,6 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
 
       ArrayRef<uint8_t> data = sec->data();
       while (!data.empty()) {
-        llvm::errs() << "\n reading note ";
         // Read one NOTE record.
         auto *nhdr = reinterpret_cast<const Elf_Nhdr *>(data.data());
         if (data.size() < sizeof(Elf_Nhdr) || data.size() < nhdr->getSize())
@@ -166,63 +297,33 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
         Elf_Note note(*nhdr);
         if (note.getName() != "GITBOM") {
           data = data.slice(nhdr->getSize());
-          llvm::errs() << "\n not a gibom";
           continue;
         }
 
         ArrayRef<uint8_t> desc = note.getDesc();
         if (!desc.empty()) {
-          StringRef content = toStringRef(desc.data());
-          llvm::errs() << "\n sha1 gitoid = " << convertToHex(content.str());
+          StringRef content = getDescAsStringRef(desc);
           // TODO: check if the file exists in the map
           FileHashBomMap::iterator Iter = BomMap.find(filename);
           if (Iter != BomMap.end()) {
-            Iter->second.second = convertToHex(content.str());
+            switch (note.getType()) {
+            case NT_GITBOM_SHA1:
+              Iter->second.sha1_gitoid = convertToHex(content);
+              break;
+            case NT_GITBOM_SHA256:
+              Iter->second.sha256_gitoid = convertToHex(content);
+            }
           }
-        } else
-          llvm::errs() << "\n empty gitoid";
+        }
+        data = data.slice(nhdr->getSize());
       }
     }
   }
-  FileHashBomMap::iterator Iter;
-  std::vector<std::string> DepLines;
-  for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
-    std::string Line = "blob " + Iter->second.first;
-    if (!Iter->second.second.empty()) {
-      Line.append(" bom " + Iter->second.second + "\n");
-    } else
-      Line.append("\n");
-    DepLines.push_back(Line);
-  }
-  std::sort(DepLines.begin(), DepLines.end());
-  // Compute Hash
-  llvm::SHA1 Hash;
-  std::string hashContents, gitRef;
-  for (auto line : DepLines) {
-    hashContents.append(line);
-  }
-  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
-  Hash.update(StringRef(initData));
-  Hash.update(hashContents);
-  auto Result = Hash.final();
-  gitRef = convertToHex(Result);
 
-  SmallString<128> gitRefPath;
-  gitRefPath = StringRef(config->gitBomDir);
-  llvm::sys::path::append(gitRefPath, gitRef.substr(0, 2));
-  std::error_code EC;
-  EC = llvm::sys::fs::create_directories(gitRefPath, true);
-  if (EC) {
-    error("\n error opening " + gitRefPath);
-  }
-  llvm::sys::path::append(gitRefPath, gitRef.substr(2));
-  llvm::raw_fd_ostream OS(gitRefPath, EC, llvm::sys::fs::OF_TextWithCRLF);
-  if (EC) {
-    error("\n error opening " + gitRefPath);
-  }
-  OS << hashContents;
+  auto sha1_gitoid = createSHA1_BomFile(BomMap);
+  auto sha256_gitoid = createSHA256_BomFile(BomMap);
   if (create) {
-    return std::make_unique<BomSection<ELFT>>(Result.str());
+    return std::make_unique<BomSection<ELFT>>(sha1_gitoid, sha256_gitoid);
   }
   return nullptr;
 }
