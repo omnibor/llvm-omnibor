@@ -101,7 +101,7 @@ MergeInputSection *elf::createCommentSection() {
   return sec;
 }
 
-// .bom section
+// .note.gitbom section
 template <class ELFT>
 BomSection<ELFT>::BomSection(std::string sha1_gitoid, std::string sha256_gitoid)
     : SyntheticSection(llvm::ELF::SHF_ALLOC, llvm::ELF::SHT_NOTE, 4,
@@ -305,7 +305,6 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
         ArrayRef<uint8_t> desc = note.getDesc();
         if (!desc.empty()) {
           StringRef content = getDescAsStringRef(desc);
-          // TODO: check if the file exists in the map
           FileHashBomMap::iterator Iter = BomMap.find(filename);
           if (Iter != BomMap.end()) {
             switch (note.getType()) {

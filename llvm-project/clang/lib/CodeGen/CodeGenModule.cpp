@@ -6422,12 +6422,11 @@ static std::string getSHA256Hash(std::string Filename,
   return convertToHex(Result);
 }
 
-/// This function computes the SHA1 gitoid to be written into the .bom section.
-/// This function computes the SHA1 gitoid to be written into the .bom section.
-/// It also creates the SHA1 GitBOM file that contains the artifact id of all
-/// the dependencies. The file is stored in a subdirectory that is named with
-/// the first two characters of the gitoid and the filename is the remaining
-/// characters.
+/// This function computes the SHA1 gitoid to be written into .note.gitbom
+/// section. It also creates the SHA1 GitBOM file that contains the artifact
+/// id of all the dependencies. The file is stored in a subdirectory that is
+/// named with the first two characters of the gitoid and the filename is the
+/// remaining characters.
 static std::string ComputeSHA1GitBomData(CodeGenModule &CGM,
                                          std::vector<std::string> &Deps) {
   llvm::SHA1 Hash;
@@ -6516,7 +6515,7 @@ static std::string ComputeSHA256GitBomData(CodeGenModule &CGM,
   return gitoid;
 }
 
-/// Emit .bom section and the Gitbom document
+/// Emit .note.gitbom section and the Gitbom document
 void CodeGenModule::EmitGitBomData() {
   llvm::NamedMDNode *GitBomMetadata =
       TheModule.getOrInsertNamedMetadata(".note.gitbom");
