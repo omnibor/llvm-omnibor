@@ -180,6 +180,7 @@ static std::string createSHA1_BomFile(FileHashBomMap &BomMap) {
 
   FileHashBomMap::iterator Iter;
   std::vector<std::string> DepLines;
+  DepLines.push_back("gitoid blob sha1\n");
   for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
     std::string Line = "blob " + Iter->second.sha1_artifact_id;
     if (!Iter->second.sha1_gitoid.empty()) {
@@ -188,7 +189,7 @@ static std::string createSHA1_BomFile(FileHashBomMap &BomMap) {
       Line.append("\n");
     DepLines.push_back(Line);
   }
-  std::sort(DepLines.begin(), DepLines.end());
+  std::sort(std::next(DepLines.begin()), DepLines.end());
   // Compute Hash
   llvm::SHA1 Hash;
   std::string hashContents, gitOid;
@@ -223,6 +224,7 @@ static std::string createSHA256_BomFile(FileHashBomMap &BomMap) {
 
   FileHashBomMap::iterator Iter;
   std::vector<std::string> DepLines;
+  DepLines.push_back("gitoid blob sha256\n");
   for (Iter = BomMap.begin(); Iter != BomMap.end(); Iter++) {
     std::string Line = "blob " + Iter->second.sha256_artifact_id;
     if (!Iter->second.sha256_gitoid.empty()) {
@@ -231,7 +233,7 @@ static std::string createSHA256_BomFile(FileHashBomMap &BomMap) {
       Line.append("\n");
     DepLines.push_back(Line);
   }
-  std::sort(DepLines.begin(), DepLines.end());
+  std::sort(std::next(DepLines.begin()), DepLines.end());
   // Compute Hash
   llvm::SHA256 Hash;
   std::string hashContents, gitOid;
