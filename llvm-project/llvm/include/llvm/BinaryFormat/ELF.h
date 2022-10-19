@@ -1457,6 +1457,12 @@ enum : unsigned {
   NT_GNU_BUILD_ATTRIBUTE_FUNC = 0x101,
 };
 
+// GitBOM note types.
+enum : unsigned {
+  NT_GITBOM_SHA1 = 1,
+  NT_GITBOM_SHA256 = 2,
+};
+
 // Core note types.
 enum : unsigned {
   NT_PRSTATUS = 1,

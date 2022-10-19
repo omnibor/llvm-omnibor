@@ -1580,11 +1580,11 @@ private:
   /// Emit the Clang commandline as llvm.commandline metadata.
   void EmitCommandLineMetadata();
 
-  /// Emit the gitbom as .gitbom metadata.
-  void EmitGitBomMetadata();
+  /// Emit the gitbom data in a file and write out the .bom section.
+  void EmitGitBomData();
 
   /// Compute the final gitref for all the dependencies.
-  std::string ComputeGitBomMetadata(std::vector<std::string> &Deps);
+  std::string ComputeGitBomData(std::vector<std::string> &Deps);
 
   /// Emit the module flag metadata used to pass options controlling the
   /// the backend to LLVM.

@@ -973,15 +973,19 @@ private:
 
 // .bom section.
 template <class ELFT> class BomSection final : public SyntheticSection {
+  using Elf_Nhdr = typename ELFT::Nhdr;
 
 public:
   static std::unique_ptr<BomSection> create();
-  BomSection(std::string gitRef);
-  size_t getSize() const override { return gitRef.size(); }
+  BomSection(std::string sha1_Gitoid, std::string sha256_Gitoid);
+  size_t getSize() const override {
+    return 40 + sha1_Gitoid.size() + sha256_Gitoid.size();
+  }
   void writeTo(uint8_t *buf) override;
 
 private:
-  std::string gitRef;
+  std::string sha1_Gitoid;
+  std::string sha256_Gitoid;
 };
 
 // .MIPS.abiflags section.
