@@ -147,11 +147,11 @@ static std::string convertToHex(StringRef Input) {
 }
 
 static void genArtifactIds(FileHashBomMap &BomMap) {
-  llvm::SHA1 SHA1_Hash;
-  llvm::SHA256 SHA256_Hash;
   struct Gitbom bomData;
 
   for (StringRef path : config->dependencyFiles) {
+    llvm::SHA1 SHA1_Hash;
+    llvm::SHA256 SHA256_Hash;
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
         llvm::MemoryBuffer::getFile(path, /*IsText=*/true);
     if (!fileBuf) {
