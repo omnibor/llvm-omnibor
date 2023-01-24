@@ -55,8 +55,8 @@ def build_id: F<"build-id">, HelpText<"Alias for --build-id=fast">;
 def build_id_eq: J<"build-id=">, HelpText<"Generate build ID note">,
   MetaVarName<"[fast,md5,sha1,uuid,0x<hexstring>]">;
 
-def gitbom: F<"gitbom">, HelpText<"Generate gitBOM data">;
-def gitbom_eq: J<"gitbom=">, HelpText<"Generate gitBOM data in the given directory">,
+def omnibor: F<"omnibor">, HelpText<"Generate OmniBor data">;
+def omnibor_eq: J<"omnibor=">, HelpText<"Generate OmniBor data in the given directory">,
   MetaVarName<"<dir>">;
 
 defm check_sections: B<"check-sections",

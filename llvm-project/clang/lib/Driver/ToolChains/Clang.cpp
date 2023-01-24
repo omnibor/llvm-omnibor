@@ -6805,23 +6805,23 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *Exec = D.getClangProgramPath();
 
-  auto GitBomRecordSwitches =
-      Args.hasFlag(options::OPT_frecord_gitbom, options::OPT_frecord_gitbom_EQ,
-                   options::OPT_fno_record_gitbom, false);
+  auto OmniBorRecordSwitches = Args.hasFlag(
+      options::OPT_frecord_omnibor, options::OPT_frecord_omnibor_EQ,
+      options::OPT_fno_record_omnibor, false);
 
-  // If GITBOM_DIR environment variable is set, generate gitbom data in the
+  // If OMNIBOR_DIR environment variable is set, generate Omnibor data in the
   // specified dir.
-  // Generate GitBOM data if frecord-gitbom option is set. Use the directory
+  // Generate Omnibor data if frecord-omnibor option is set. Use the directory
   // if specified along with the option, otherwise, the default is to write
   // the bom files in the same directory as the object file.
   SmallString<128> OutputPath;
-  if (char *env = ::getenv("GITBOM_DIR")) {
+  if (char *env = ::getenv("OMNIBOR_DIR")) {
     OutputPath = env;
   }
-  if (OutputPath.str().empty() && GitBomRecordSwitches) {
-    auto GitBomDir = Args.getLastArg(options::OPT_frecord_gitbom_EQ);
-    if (GitBomDir) {
-      auto ArgValue = GitBomDir->getValue();
+  if (OutputPath.str().empty() && OmniBorRecordSwitches) {
+    auto OmniBorDir = Args.getLastArg(options::OPT_frecord_omnibor_EQ);
+    if (OmniBorDir) {
+      auto ArgValue = OmniBorDir->getValue();
       OutputPath = ArgValue;
     }
     // Pass the dir name where the object file is created.
@@ -6833,9 +6833,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       OutputPath = StringRef("./");
   }
   if (!OutputPath.str().empty()) {
-    llvm::sys::path::append(OutputPath, ".gitbom");
     llvm::sys::path::append(OutputPath, "objects");
-    CmdArgs.push_back("-record-gitbom");
+    CmdArgs.push_back("-record-omnibor");
     CmdArgs.push_back(Args.MakeArgString(OutputPath));
     // Create the .bom/objects directory
     auto EC =

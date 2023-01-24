@@ -498,7 +498,7 @@ void CompilerInstance::createPreprocessor(TranslationUnitKind TUKind) {
   if (!DepOpts.OutputFile.empty()) {
     addDependencyCollector(std::make_shared<DependencyFileGenerator>(DepOpts));
   }
-  if (!getCodeGenOpts().RecordGitBom.empty()) {
+  if (!getCodeGenOpts().RecordOmniBor.empty()) {
     DepOpts.BomDependencies = (std::make_shared<std::vector<std::string>>());
     addDependencyCollector(std::make_shared<BomDependencyGenerator>(DepOpts));
     CodeGenOptions &CGOpts = getCodeGenOpts();

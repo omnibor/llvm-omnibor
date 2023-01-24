@@ -971,7 +971,7 @@ private:
   size_t shardOffsets[numShards];
 };
 
-// .bom section.
+// .note.omnibor section.
 template <class ELFT> class BomSection final : public SyntheticSection {
   using Elf_Nhdr = typename ELFT::Nhdr;
 
@@ -1254,7 +1254,7 @@ struct InStruct {
   std::unique_ptr<InputSection> attributes;
   std::unique_ptr<BssSection> bss;
   std::unique_ptr<BssSection> bssRelRo;
-  std::unique_ptr<SyntheticSection> gitBom;
+  std::unique_ptr<SyntheticSection> OmniBor;
   std::unique_ptr<GotSection> got;
   std::unique_ptr<GotPltSection> gotPlt;
   std::unique_ptr<IgotPltSection> igotPlt;

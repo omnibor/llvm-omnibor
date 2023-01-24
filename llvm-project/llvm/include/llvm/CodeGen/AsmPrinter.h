@@ -797,8 +797,8 @@ private:
   void emitModuleIdents(Module &M);
   /// Emit bytes for llvm.commandline metadata.
   void emitModuleCommandLines(Module &M);
-  /// Emit bytes for .bom
-  void emitModuleGitBom(Module &M);
+  /// Emit bytes for .note.omnibor
+  void emitModuleOmniBor(Module &M);
 
   GCMetadataPrinter *GetOrCreateGCPrinter(GCStrategy &S);
   void emitGlobalAlias(Module &M, const GlobalAlias &GA);

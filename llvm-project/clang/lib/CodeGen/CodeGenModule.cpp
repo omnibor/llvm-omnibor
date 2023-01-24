@@ -853,8 +853,8 @@ void CodeGenModule::Release() {
   if (!getCodeGenOpts().RecordCommandLine.empty())
     EmitCommandLineMetadata();
 
-  if (!getCodeGenOpts().RecordGitBom.empty())
-    EmitGitBomData();
+  if (!getCodeGenOpts().RecordOmniBor.empty())
+    EmitOmniBorData();
 
   if (!getCodeGenOpts().StackProtectorGuard.empty())
     getModule().setStackProtectorGuard(getCodeGenOpts().StackProtectorGuard);
@@ -6422,18 +6422,18 @@ static std::string getSHA256Hash(std::string Filename,
   return convertToHex(Result);
 }
 
-/// This function computes the SHA1 gitoid to be written into .note.gitbom
-/// section. It also creates the SHA1 GitBOM file that contains the artifact
+/// This function computes the SHA1 gitoid to be written into .note.omnibor
+/// section. It also creates the SHA1 OmniBor file that contains the artifact
 /// id of all the dependencies. The file is stored in a subdirectory that is
 /// named with the first two characters of the gitoid and the filename is the
 /// remaining characters.
-static std::string ComputeSHA1GitBomData(CodeGenModule &CGM,
-                                         std::vector<std::string> &Deps) {
+static std::string ComputeSHA1OmniBorData(CodeGenModule &CGM,
+                                          std::vector<std::string> &Deps) {
   llvm::SHA1 Hash;
   std::string hashContents, gitoid, gitoidHex;
   std::vector<std::string> DepLines;
   DiagnosticsEngine &Diags = CGM.getDiags();
-  // Header for the GitBOM document
+  // Header for the OmniBor document
   DepLines.push_back("gitoid:blob:sha1\n");
 
   for (auto file : Deps) {
@@ -6451,7 +6451,7 @@ static std::string ComputeSHA1GitBomData(CodeGenModule &CGM,
   gitoidHex = convertToHex(Result);
   gitoid = Result.str();
 
-  SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordGitBom);
+  SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordOmniBor);
   llvm::sys::path::append(gitoidPath, "sha1");
   llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
   std::error_code EC;
@@ -6471,13 +6471,13 @@ static std::string ComputeSHA1GitBomData(CodeGenModule &CGM,
   return gitoid;
 }
 
-static std::string ComputeSHA256GitBomData(CodeGenModule &CGM,
-                                           std::vector<std::string> &Deps) {
+static std::string ComputeSHA256OmniBorData(CodeGenModule &CGM,
+                                            std::vector<std::string> &Deps) {
   llvm::SHA256 Hash;
   std::string hashContents, gitoid, gitoidHex;
   std::vector<std::string> DepLines;
   DiagnosticsEngine &Diags = CGM.getDiags();
-  // Header for the GitBOM document
+  // Header for the OmniBor document
   DepLines.push_back("gitoid:blob:sha256\n");
 
   for (auto file : Deps) {
@@ -6495,7 +6495,7 @@ static std::string ComputeSHA256GitBomData(CodeGenModule &CGM,
   gitoidHex = convertToHex(Result);
   gitoid = Result.str();
 
-  SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordGitBom);
+  SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordOmniBor);
   llvm::sys::path::append(gitoidPath, "sha256");
   llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
   std::error_code EC;
@@ -6515,24 +6515,24 @@ static std::string ComputeSHA256GitBomData(CodeGenModule &CGM,
   return gitoid;
 }
 
-/// Emit .note.gitbom section and the Gitbom document
-void CodeGenModule::EmitGitBomData() {
-  llvm::NamedMDNode *GitBomMetadata =
-      TheModule.getOrInsertNamedMetadata(".note.gitbom");
+/// Emit .note.omnibor section and the Omnibor document
+void CodeGenModule::EmitOmniBorData() {
+  llvm::NamedMDNode *OmniBorMetadata =
+      TheModule.getOrInsertNamedMetadata(".note.omnibor");
 
   assert(!getCodeGenOpts().BomDependencies->empty() &&
          "There should have been atleast one Bom dependency(source file).");
 
   std::string sha1_gitoid =
-      ComputeSHA1GitBomData(*this, *(getCodeGenOpts().BomDependencies));
+      ComputeSHA1OmniBorData(*this, *(getCodeGenOpts().BomDependencies));
 
   std::string sha256_gitoid =
-      ComputeSHA256GitBomData(*this, *(getCodeGenOpts().BomDependencies));
+      ComputeSHA256OmniBorData(*this, *(getCodeGenOpts().BomDependencies));
 
   llvm::LLVMContext &Ctx = TheModule.getContext();
-  llvm::Metadata *GitBomNode[] = {llvm::MDString::get(Ctx, sha1_gitoid),
-                                  llvm::MDString::get(Ctx, sha256_gitoid)};
-  GitBomMetadata->addOperand(llvm::MDNode::get(Ctx, GitBomNode));
+  llvm::Metadata *OmniBorNode[] = {llvm::MDString::get(Ctx, sha1_gitoid),
+                                   llvm::MDString::get(Ctx, sha256_gitoid)};
+  OmniBorMetadata->addOperand(llvm::MDNode::get(Ctx, OmniBorNode));
 }
 
 void CodeGenModule::EmitCoverageFile() {

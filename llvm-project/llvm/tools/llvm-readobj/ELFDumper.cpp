@@ -5014,10 +5014,10 @@ template <typename ELFT>
 static bool printBOMNote(raw_ostream &OS, uint32_t NoteType,
                          ArrayRef<uint8_t> Desc) {
   switch (NoteType) {
-  case ELF::NT_GITBOM_SHA1:
+  case ELF::NT_OMNIBOR_SHA1:
     OS << "   SHA1 GitOID: " << getGNUBuildId(Desc);
     break;
-  case ELF::NT_GITBOM_SHA256:
+  case ELF::NT_OMNIBOR_SHA256:
     OS << "   SHA256 GitOID: " << getGNUBuildId(Desc);
     break;
   default:
@@ -5359,8 +5359,8 @@ const NoteType GNUNoteTypes[] = {
 };
 
 const NoteType BOMNoteTypes[] = {
-    {ELF::NT_GITBOM_SHA1, "NT_GITBOM (SHA1 GITOID)"},
-    {ELF::NT_GITBOM_SHA256, "NT_GITBOM (SHA256 GITOID)"},
+    {ELF::NT_OMNIBOR_SHA1, "NT_OMNIBOR (SHA1 GITOID)"},
+    {ELF::NT_OMNIBOR_SHA256, "NT_OMNIBOR (SHA256 GITOID)"},
 };
 
 const NoteType FreeBSDCoreNoteTypes[] = {
@@ -5501,7 +5501,7 @@ StringRef getNoteTypeName(const typename ELFT::Note &Note, unsigned ELFType) {
   StringRef Name = Note.getName();
   if (Name == "GNU")
     return FindNote(GNUNoteTypes);
-  if (Name.startswith("GITBOM"))
+  if (Name.startswith("OMNIBOR"))
     return FindNote(BOMNoteTypes);
   if (Name == "FreeBSD") {
     if (ELFType == ELF::ET_CORE) {
@@ -5650,7 +5650,7 @@ template <class ELFT> void GNUELFDumper<ELFT>::printNotes() {
     if (Name == "GNU") {
       if (printGNUNote<ELFT>(OS, Type, Descriptor))
         return Error::success();
-    } else if (Name == "GITBOM") {
+    } else if (Name == "OMNIBOR") {
       if (printBOMNote<ELFT>(OS, Type, Descriptor))
         return Error::success();
     } else if (Name == "FreeBSD") {
@@ -7024,10 +7024,10 @@ static bool printBOMNoteLLVMStyle(uint32_t NoteType, ArrayRef<uint8_t> Desc,
   switch (NoteType) {
   default:
     return false;
-  case ELF::NT_GITBOM_SHA1:
+  case ELF::NT_OMNIBOR_SHA1:
     W.printString("SHA1 Gitoid", getGNUBuildId(Desc));
     break;
-  case ELF::NT_GITBOM_SHA256:
+  case ELF::NT_OMNIBOR_SHA256:
     W.printString("SHA256 Gitoid", getGNUBuildId(Desc));
     break;
   }
@@ -7137,7 +7137,7 @@ template <class ELFT> void LLVMELFDumper<ELFT>::printNotes() {
     if (Name == "GNU") {
       if (printGNUNoteLLVMStyle<ELFT>(Type, Descriptor, W))
         return Error::success();
-    } else if (Name == "GITBOM") {
+    } else if (Name == "OMNIBOR") {
       if (printBOMNoteLLVMStyle<ELFT>(Type, Descriptor, W))
         return Error::success();
     } else if (Name == "FreeBSD") {

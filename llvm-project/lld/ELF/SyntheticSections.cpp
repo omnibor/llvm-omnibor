@@ -56,13 +56,13 @@ using llvm::support::endian::read32le;
 using llvm::support::endian::write32le;
 using llvm::support::endian::write64le;
 
-struct Gitbom {
+struct Omnibor {
   std::string sha1_artifact_id;
   std::string sha1_gitoid;
   std::string sha256_artifact_id;
   std::string sha256_gitoid;
 };
-using FileHashBomMap = std::map<std::string, struct Gitbom>;
+using FileHashBomMap = std::map<std::string, struct Omnibor>;
 
 constexpr size_t MergeNoTailSection::numShards;
 
@@ -101,33 +101,33 @@ MergeInputSection *elf::createCommentSection() {
   return sec;
 }
 
-// .note.gitbom section
+// .note.omnibor section
 template <class ELFT>
 BomSection<ELFT>::BomSection(std::string sha1_gitoid, std::string sha256_gitoid)
     : SyntheticSection(llvm::ELF::SHF_ALLOC, llvm::ELF::SHT_NOTE, 4,
-                       ".note.gitbom"),
+                       ".note.omnibor"),
       sha1_Gitoid(sha1_gitoid), sha256_Gitoid(sha256_gitoid) {}
 
 template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
   ArrayRef<uint8_t> sha1_contents = {(const uint8_t *)sha1_Gitoid.data(),
                                      sha1_Gitoid.size()};
   // sha1 Note section
-  write32(buf, 7);                                              // Name size
+  write32(buf, 8);                                              // Name size
   write32(buf + 4, sha1_contents.size());                       // Desc size
-  write32(buf + 8, NT_GITBOM_SHA1);                             // Type
-  memcpy(buf + 12, "GITBOM", 6);                                // Name string
-  memset(buf + 18, 0, 2);                                       // padding
+  write32(buf + 8, NT_OMNIBOR_SHA1);                            // Type
+  memcpy(buf + 12, "OMNIBOR", 7);                               // Name string
+  memset(buf + 19, 0, 1);                                       // padding
   memcpy(buf + 20, sha1_contents.data(), sha1_contents.size()); // GitOID
 
   buf += sha1_contents.size() + 20;
   ArrayRef<uint8_t> sha256_contents = {(const uint8_t *)sha256_Gitoid.data(),
                                        sha256_Gitoid.size()};
   // sha256 Note section
-  write32(buf, 7);                          // Name size
+  write32(buf, 8);                          // Name size
   write32(buf + 4, sha256_contents.size()); // Desc size
-  write32(buf + 8, NT_GITBOM_SHA256);       // Type
-  memcpy(buf + 12, "GITBOM", 6);            // Name string
-  memset(buf + 18, 0, 2);                   // padding
+  write32(buf + 8, NT_OMNIBOR_SHA256);      // Type
+  memcpy(buf + 12, "OMNIBOR", 7);           // Name string
+  memset(buf + 19, 0, 1);                   // padding
   memcpy(buf + 20, sha256_contents.data(), sha256_contents.size());
 }
 
@@ -147,7 +147,7 @@ static std::string convertToHex(StringRef Input) {
 }
 
 static void genArtifactIds(FileHashBomMap &BomMap) {
-  struct Gitbom bomData;
+  struct Omnibor bomData;
 
   for (StringRef path : config->dependencyFiles) {
     llvm::SHA1 SHA1_Hash;
@@ -203,7 +203,7 @@ static std::string createSHA1_BomFile(FileHashBomMap &BomMap) {
   gitOid = convertToHex(Result);
 
   SmallString<128> gitOidPath;
-  gitOidPath = StringRef(config->gitBomDir);
+  gitOidPath = StringRef(config->OmniBorDir);
   llvm::sys::path::append(gitOidPath, "sha1");
   llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
   std::error_code EC;
@@ -247,7 +247,7 @@ static std::string createSHA256_BomFile(FileHashBomMap &BomMap) {
   gitOid = convertToHex(Result);
 
   SmallString<128> gitOidPath;
-  gitOidPath = StringRef(config->gitBomDir);
+  gitOidPath = StringRef(config->OmniBorDir);
   llvm::sys::path::append(gitOidPath, "sha256");
   llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
   std::error_code EC;
@@ -282,7 +282,7 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
   std::error_code ec;
   bool create = false;
   for (InputSectionBase *sec : inputSections) {
-    if (sec->name == ".note.gitbom") {
+    if (sec->name == ".note.omnibor") {
       sec->markDead();
       create = true;
       std::string filename = toString(sec->file);
@@ -297,7 +297,7 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
           fatal("data is too short");
 
         Elf_Note note(*nhdr);
-        if (note.getName() != "GITBOM") {
+        if (note.getName() != "OMNIBOR") {
           data = data.slice(nhdr->getSize());
           continue;
         }
@@ -308,10 +308,10 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
           FileHashBomMap::iterator Iter = BomMap.find(filename);
           if (Iter != BomMap.end()) {
             switch (note.getType()) {
-            case NT_GITBOM_SHA1:
+            case NT_OMNIBOR_SHA1:
               Iter->second.sha1_gitoid = convertToHex(content);
               break;
-            case NT_GITBOM_SHA256:
+            case NT_OMNIBOR_SHA256:
               Iter->second.sha256_gitoid = convertToHex(content);
             }
           }
@@ -4061,7 +4061,7 @@ void InStruct::reset() {
   attributes.reset();
   bss.reset();
   bssRelRo.reset();
-  gitBom.reset();
+  OmniBor.reset();
   got.reset();
   gotPlt.reset();
   igotPlt.reset();

@@ -180,8 +180,8 @@ public:
   /// if non-empty.
   std::string RecordCommandLine;
 
-  /// The string containing the gitref of the .bom file.
-  std::string RecordGitBom;
+  /// The string containing the gitoid of the omnibor file.
+  std::string RecordOmniBor;
 
   /// List of dependent source/header files.
   /// This is shared with DependencyOuputOptions.
