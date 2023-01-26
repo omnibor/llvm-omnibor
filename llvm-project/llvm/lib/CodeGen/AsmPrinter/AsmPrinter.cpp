@@ -2435,7 +2435,7 @@ void AsmPrinter::emitModuleOmniBor(Module &M) {
   const MDString *SHA1 = cast<MDString>(N1->getOperand(0));
   OutStreamer->emitInt32(8);                   // namesz
   OutStreamer->emitInt32(SHA1->getLength());   // descsz
-  OutStreamer->emitInt32(ELF::NT_OMNIBOR_SHA1); // type
+  OutStreamer->emitInt32(ELF::NT_GITOID_SHA1); // type
   OutStreamer->emitBytes("OMNIBOR");            // name
   OutStreamer->emitZeros(1);                    // padding
   OutStreamer->emitBytes(SHA1->getString());   // sha1 gitoid
@@ -2443,7 +2443,7 @@ void AsmPrinter::emitModuleOmniBor(Module &M) {
   const MDString *SHA256 = cast<MDString>(N1->getOperand(1));
   OutStreamer->emitInt32(8);                     // namesz
   OutStreamer->emitInt32(SHA256->getLength());   // descsz
-  OutStreamer->emitInt32(ELF::NT_OMNIBOR_SHA256); // type
+  OutStreamer->emitInt32(ELF::NT_GITOID_SHA256); // type
   OutStreamer->emitBytes("OMNIBOR");              // name
   OutStreamer->emitZeros(1);                      // padding
   OutStreamer->emitBytes(SHA256->getString());   // sha256 gitoid

@@ -1459,8 +1459,8 @@ enum : unsigned {
 
 // OMNIBOR note types.
 enum : unsigned {
-  NT_OMNIBOR_SHA1 = 1,
-  NT_OMNIBOR_SHA256 = 2,
+  NT_GITOID_SHA1 = 1,
+  NT_GITOID_SHA256 = 2,
 };
 
 // Core note types.

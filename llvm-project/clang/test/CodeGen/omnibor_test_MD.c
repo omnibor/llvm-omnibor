@@ -13,7 +13,7 @@
 
 // BOM_NOTE: Displaying notes found in: .note.omnibor
 // BOM_NOTE:   Owner                Data size        Description
-// BOM_NOTE:   OMNIBOR               0x00000014       NT_OMNIBOR (SHA1 GITOID)
+// BOM_NOTE:   OMNIBOR               0x00000014       NT_GITOID_SHA1
 // BOM_NOTE:   SHA1 GitOID: 0be9b91c3e456c910b32afc862ffd073b7c61d5f
-// BOM_NOTE:   OMNIBOR               0x00000020       NT_OMNIBOR (SHA256 GITOID)
+// BOM_NOTE:   OMNIBOR               0x00000020       NT_GITOID_SHA256
 // BOM_NOTE:   SHA256 GitOID: 58ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96

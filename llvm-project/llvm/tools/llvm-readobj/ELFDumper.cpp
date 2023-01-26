@@ -5014,10 +5014,10 @@ template <typename ELFT>
 static bool printBOMNote(raw_ostream &OS, uint32_t NoteType,
                          ArrayRef<uint8_t> Desc) {
   switch (NoteType) {
-  case ELF::NT_OMNIBOR_SHA1:
+  case ELF::NT_GITOID_SHA1:
     OS << "   SHA1 GitOID: " << getGNUBuildId(Desc);
     break;
-  case ELF::NT_OMNIBOR_SHA256:
+  case ELF::NT_GITOID_SHA256:
     OS << "   SHA256 GitOID: " << getGNUBuildId(Desc);
     break;
   default:
@@ -5359,8 +5359,8 @@ const NoteType GNUNoteTypes[] = {
 };
 
 const NoteType BOMNoteTypes[] = {
-    {ELF::NT_OMNIBOR_SHA1, "NT_OMNIBOR (SHA1 GITOID)"},
-    {ELF::NT_OMNIBOR_SHA256, "NT_OMNIBOR (SHA256 GITOID)"},
+    {ELF::NT_GITOID_SHA1, "NT_GITOID_SHA1"},
+    {ELF::NT_GITOID_SHA256, "NT_GITOID_SHA256"},
 };
 
 const NoteType FreeBSDCoreNoteTypes[] = {
@@ -7024,11 +7024,11 @@ static bool printBOMNoteLLVMStyle(uint32_t NoteType, ArrayRef<uint8_t> Desc,
   switch (NoteType) {
   default:
     return false;
-  case ELF::NT_OMNIBOR_SHA1:
-    W.printString("SHA1 Gitoid", getGNUBuildId(Desc));
+  case ELF::NT_GITOID_SHA1:
+    W.printString("SHA1 GITOID", getGNUBuildId(Desc));
     break;
-  case ELF::NT_OMNIBOR_SHA256:
-    W.printString("SHA256 Gitoid", getGNUBuildId(Desc));
+  case ELF::NT_GITOID_SHA256:
+    W.printString("SHA256 GITOID", getGNUBuildId(Desc));
     break;
   }
   return true;

@@ -175,9 +175,9 @@ void ScalarEnumerationTraits<ELFYAML::ELF_NT>::enumeration(
   ECase(NT_AMD_PAL_METADATA);
   // AMDGPU specific notes. (Code Object V3)
   ECase(NT_AMDGPU_METADATA);
-  // GITBOM note types
-  ECase(NT_OMNIBOR_SHA1);
-  ECase(NT_OMNIBOR_SHA256);
+  // OMNIBOR note types
+  ECase(NT_GITOID_SHA1);
+  ECase(NT_GITOID_SHA256);
 #undef ECase
   IO.enumFallback<Hex32>(Value);
 }

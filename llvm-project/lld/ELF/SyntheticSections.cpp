@@ -114,7 +114,7 @@ template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
   // sha1 Note section
   write32(buf, 8);                                              // Name size
   write32(buf + 4, sha1_contents.size());                       // Desc size
-  write32(buf + 8, NT_OMNIBOR_SHA1);                            // Type
+  write32(buf + 8, NT_GITOID_SHA1);                             // Type
   memcpy(buf + 12, "OMNIBOR", 7);                               // Name string
   memset(buf + 19, 0, 1);                                       // padding
   memcpy(buf + 20, sha1_contents.data(), sha1_contents.size()); // GitOID
@@ -125,7 +125,7 @@ template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
   // sha256 Note section
   write32(buf, 8);                          // Name size
   write32(buf + 4, sha256_contents.size()); // Desc size
-  write32(buf + 8, NT_OMNIBOR_SHA256);      // Type
+  write32(buf + 8, NT_GITOID_SHA256);       // Type
   memcpy(buf + 12, "OMNIBOR", 7);           // Name string
   memset(buf + 19, 0, 1);                   // padding
   memcpy(buf + 20, sha256_contents.data(), sha256_contents.size());
@@ -308,10 +308,10 @@ std::unique_ptr<BomSection<ELFT>> BomSection<ELFT>::create() {
           FileHashBomMap::iterator Iter = BomMap.find(filename);
           if (Iter != BomMap.end()) {
             switch (note.getType()) {
-            case NT_OMNIBOR_SHA1:
+            case NT_GITOID_SHA1:
               Iter->second.sha1_gitoid = convertToHex(content);
               break;
-            case NT_OMNIBOR_SHA256:
+            case NT_GITOID_SHA256:
               Iter->second.sha256_gitoid = convertToHex(content);
             }
           }
