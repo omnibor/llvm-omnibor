@@ -334,9 +334,9 @@ template <class ELFT> void elf::createSyntheticSections() {
       add(*in.mipsReginfo);
   }
 
-  if (config->gitBomDir.length()) {
-    if ((in.gitBom = BomSection<ELFT>::create()))
-      add(*in.gitBom);
+  if (config->OmniBorDir.length()) {
+    if ((in.OmniBor = BomSection<ELFT>::create()))
+      add(*in.OmniBor);
   }
 
   StringRef relaDynName = config->isRela ? ".rela.dyn" : ".rel.dyn";

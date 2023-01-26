@@ -1112,9 +1112,9 @@ const MCExpr *TargetLoweringObjectFileELF::lowerDSOLocalEquivalent(
                                  getContext());
 }
 
-MCSection *TargetLoweringObjectFileELF::getSectionForGitBom() const {
+MCSection *TargetLoweringObjectFileELF::getSectionForOmniBor() const {
   // .bom
-  return getContext().getELFSection(".note.gitbom", ELF::SHT_NOTE,
+  return getContext().getELFSection(".note.omnibor", ELF::SHT_NOTE,
                                     ELF::SHF_MERGE, 1);
 }
 

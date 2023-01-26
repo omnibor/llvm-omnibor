@@ -915,9 +915,9 @@ Don't use ignorelist file for sanitizers
 
 .. option:: -frecord-command-line, -fno-record-command-line, -frecord-gcc-switches
 
-.. option:: -frecord-gitbom, -fno-record-gitbom
+.. option:: -frecord-omnibor, -fno-record-omnibor
 
-Generate a section named .bom containing a gitref value. This gitref is computed by collecting the gitrefs of all the dependencies and then computing its gitref. It also creates a file with this gitref value as the name in the same dir as that of the object file.
+Generate a section named .note.omnibor containing a gitoid value. This gitoid is computed by collecting the gitoids of all the dependencies and then computing its gitoid. It also creates a file with this gitoid value as the name in the same dir as that of the object file.
 
 .. option:: -fsanitize-address-destructor=<arg>
 

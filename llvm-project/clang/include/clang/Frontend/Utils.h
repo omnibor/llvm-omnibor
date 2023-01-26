@@ -106,7 +106,7 @@ private:
 
 // Duplicating FileGenerator for generating BomDependenciesas the semantics
 // of BomDependencies and -MD could differ. For example, system headers are
-// always treated as a dependency for gitbom.
+// always treated as a dependency for omnibor.
 class BomDependencyGenerator : public DependencyCollector {
 public:
   BomDependencyGenerator(const DependencyOutputOptions &Opts);

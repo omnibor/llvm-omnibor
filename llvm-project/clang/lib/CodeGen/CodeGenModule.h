@@ -1580,11 +1580,11 @@ private:
   /// Emit the Clang commandline as llvm.commandline metadata.
   void EmitCommandLineMetadata();
 
-  /// Emit the gitbom data in a file and write out the .bom section.
-  void EmitGitBomData();
+  /// Emit the omnibor data in a file and write out the .note.omnibor section.
+  void EmitOmniBorData();
 
-  /// Compute the final gitref for all the dependencies.
-  std::string ComputeGitBomData(std::vector<std::string> &Deps);
+  /// Compute the final omnibor id for all the dependencies.
+  std::string ComputeOmniBorData(std::vector<std::string> &Deps);
 
   /// Emit the module flag metadata used to pass options controlling the
   /// the backend to LLVM.

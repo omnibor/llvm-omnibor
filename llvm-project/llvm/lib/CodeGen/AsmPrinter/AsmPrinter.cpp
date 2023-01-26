@@ -1921,7 +1921,7 @@ bool AsmPrinter::doFinalization(Module &M) {
   emitModuleCommandLines(M);
 
   // Emit bytes for .bom metadata
-  emitModuleGitBom(M);
+  emitModuleOmniBor(M);
 
   // Emit __morestack address if needed for indirect calls.
   if (MMI->usesMorestackAddr()) {
@@ -2417,12 +2417,12 @@ void AsmPrinter::emitModuleIdents(Module &M) {
   }
 }
 
-void AsmPrinter::emitModuleGitBom(Module &M) {
-  MCSection *Bom = getObjFileLowering().getSectionForGitBom();
+void AsmPrinter::emitModuleOmniBor(Module &M) {
+  MCSection *Bom = getObjFileLowering().getSectionForOmniBor();
   if (!Bom)
     return;
 
-  const NamedMDNode *NMD = M.getNamedMetadata(".note.gitbom");
+  const NamedMDNode *NMD = M.getNamedMetadata(".note.omnibor");
   if (!NMD || !NMD->getNumOperands())
     return;
 
@@ -2431,21 +2431,21 @@ void AsmPrinter::emitModuleGitBom(Module &M) {
 
   const MDNode *N1 = NMD->getOperand(0);
   assert(N1->getNumOperands() == 2 &&
-         ".bom metadata entry can have only two operands");
+         ".note.omnibor metadata entry can have only two operands");
   const MDString *SHA1 = cast<MDString>(N1->getOperand(0));
-  OutStreamer->emitInt32(7);                   // namesz
+  OutStreamer->emitInt32(8);                   // namesz
   OutStreamer->emitInt32(SHA1->getLength());   // descsz
-  OutStreamer->emitInt32(ELF::NT_GITBOM_SHA1); // type
-  OutStreamer->emitBytes("GITBOM");            // name
-  OutStreamer->emitZeros(2);                   // padding
+  OutStreamer->emitInt32(ELF::NT_GITOID_SHA1); // type
+  OutStreamer->emitBytes("OMNIBOR");            // name
+  OutStreamer->emitZeros(1);                    // padding
   OutStreamer->emitBytes(SHA1->getString());   // sha1 gitoid
 
   const MDString *SHA256 = cast<MDString>(N1->getOperand(1));
-  OutStreamer->emitInt32(7);                     // namesz
+  OutStreamer->emitInt32(8);                     // namesz
   OutStreamer->emitInt32(SHA256->getLength());   // descsz
-  OutStreamer->emitInt32(ELF::NT_GITBOM_SHA256); // type
-  OutStreamer->emitBytes("GITBOM");              // name
-  OutStreamer->emitZeros(2);                     // padding
+  OutStreamer->emitInt32(ELF::NT_GITOID_SHA256); // type
+  OutStreamer->emitBytes("OMNIBOR");              // name
+  OutStreamer->emitZeros(1);                      // padding
   OutStreamer->emitBytes(SHA256->getString());   // sha256 gitoid
 
   OutStreamer->PopSection();

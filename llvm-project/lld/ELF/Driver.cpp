@@ -1034,33 +1034,33 @@ static void readConfigs(opt::InputArgList &args) {
       args.hasFlag(OPT_fortran_common, OPT_no_fortran_common, true);
   config->gcSections = args.hasFlag(OPT_gc_sections, OPT_no_gc_sections, false);
 
-  // GitBOM
-  auto *gitBomArg = args.getLastArg(OPT_gitbom, OPT_gitbom_eq);
-  SmallString<128> gitRefPath;
-  // Environment variable takes precedence over the --gitbom= option.
-  const char *gitBomDir = getenv("GITBOM_DIR");
-  if (gitBomDir) {
-    gitRefPath = StringRef(gitBomDir);
+  // OmniBor
+  auto *OmniBorArg = args.getLastArg(OPT_omnibor, OPT_omnibor_eq);
+  SmallString<128> gitOidPath;
+  // Environment variable takes precedence over the --omnibor= option.
+  const char *OmniBorDir = getenv("OMNIBOR_DIR");
+  if (OmniBorDir) {
+    gitOidPath = StringRef(OmniBorDir);
   }
-  // Process --gitbom option if env variable GITBOM_DIR is not set
-  if (gitRefPath.str().empty() && gitBomArg) {
-    if (gitBomArg->getOption().getID() == OPT_gitbom_eq) {
-      gitRefPath = gitBomArg->getValue();
+  // Process --omnibor option if env variable OMNIBOR_DIR is not set
+  if (gitOidPath.str().empty() && OmniBorArg) {
+    if (OmniBorArg->getOption().getID() == OPT_omnibor_eq) {
+      gitOidPath = OmniBorArg->getValue();
     } else {
-      // choose default dir to store gitbom data
+      // choose default dir to store omnibor data
       std::string filename = args.getLastArgValue(OPT_o).str();
-      gitRefPath = StringRef(filename);
-      llvm::sys::path::remove_filename(gitRefPath);
-      if (gitRefPath.empty())
-        gitRefPath = StringRef("./");
+      gitOidPath = StringRef(filename);
+      llvm::sys::path::remove_filename(gitOidPath);
+      if (gitOidPath.empty())
+        gitOidPath = StringRef("./");
     }
   }
-  if (!gitRefPath.empty()) {
-    llvm::sys::path::append(gitRefPath, ".gitbom/objects");
-    config->gitBomDir = gitRefPath.str().str();
-    auto EC = llvm::sys::fs::create_directories(config->gitBomDir, true);
+  if (!gitOidPath.empty()) {
+    llvm::sys::path::append(gitOidPath, "objects");
+    config->OmniBorDir = gitOidPath.str().str();
+    auto EC = llvm::sys::fs::create_directories(config->OmniBorDir, true);
     if (EC)
-      error("\n error opening " + config->gitBomDir);
+      error("\n error opening " + config->OmniBorDir);
   }
   config->dependencyFile = args.getLastArgValue(OPT_dependency_file);
   config->gnuUnique = args.hasFlag(OPT_gnu_unique, OPT_no_gnu_unique, true);

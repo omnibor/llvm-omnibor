@@ -176,7 +176,7 @@ struct Configuration {
   bool fortranCommon;
   bool gcSections;
   bool gdbIndex;
-  std::string gitBomDir;
+  std::string OmniBorDir;
   bool gnuHash = false;
   bool gnuUnique;
   bool hasDynSymTab;
