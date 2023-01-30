@@ -204,7 +204,7 @@ static std::string createSHA1_BomFile(FileHashBomMap &BomMap) {
 
   SmallString<128> gitOidPath;
   gitOidPath = StringRef(config->OmniBorDir);
-  llvm::sys::path::append(gitOidPath, "sha1");
+  llvm::sys::path::append(gitOidPath, "gitoid_blob_sha1");
   llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directories(gitOidPath, true);
@@ -248,7 +248,7 @@ static std::string createSHA256_BomFile(FileHashBomMap &BomMap) {
 
   SmallString<128> gitOidPath;
   gitOidPath = StringRef(config->OmniBorDir);
-  llvm::sys::path::append(gitOidPath, "sha256");
+  llvm::sys::path::append(gitOidPath, "gitoid_blob_sha256");
   llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directories(gitOidPath, true);
