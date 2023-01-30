@@ -2,36 +2,36 @@
 
 // RUN: %clang -c -frecord-omnibor -o %t/omnibor_1.o %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n %t/omnibor_1.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat %t/objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/objects/sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
 // RUN: %clang -c -frecord-omnibor=%t/omnibordir -o %t/omnibor_2.o %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n %t/omnibor_2.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat %t/omnibordir/objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/objects/sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat %t/omnibordir/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
 // RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" %clang -c -frecord-omnibor=%t/omnibordir -o %t/omnibor_3.o %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n %t/omnibor_3.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat %t/env_omnibor_dir/objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/env_omnibor_dir/objects/sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
-// RUN: rm -f %t/env_omnibor_dir/objects/sha1/63/87876e9c6f258ef88e7c81b9e1c41f14c397d1
+// RUN: rm -f %t/env_omnibor_dir/objects/gitoid_blob_sha1/63/87876e9c6f258ef88e7c81b9e1c41f14c397d1
 // RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" %clang -c -o %t/omnibor_4.o %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n %t/omnibor_4.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat %t/env_omnibor_dir/objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/objects/sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
-// RUN: rm -f %t/objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f
+// RUN: rm -f %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f
 // RUN: env OMNIBOR_DIR= %clang -c -frecord-omnibor -o %t/omnibor_5.o %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n %t/omnibor_5.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat %t/objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/objects/sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
-// RUN: rm -f objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f
+// RUN: rm -f objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f
 // RUN: env OMNIBOR_DIR= %clang -c -frecord-omnibor %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n omnibor.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat objects/sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/objects/sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
 // BOM_NOTE_SECTION: Displaying notes found in: .note.omnibor
 // BOM_NOTE_SECTION: Owner                Data size        Description

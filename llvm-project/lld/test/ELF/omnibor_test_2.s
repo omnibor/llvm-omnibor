@@ -3,8 +3,8 @@
 # RUN: llvm-mc -filetype=obj -triple=x86_64-pc-linux %S/Inputs/omnibor_main.s -o %t/omnibor_main.o
 # RUN: ld.lld %t/omnibor_add.o %t/omnibor_main.o -e main --omnibor -o %t/omnibor_add.exe
 # RUN: llvm-readelf -n %t/omnibor_add.exe | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-# RUN: cat %t/objects/sha1/7b/5cc942363892974b8089c3fb1cc92a1f807ba1 | FileCheck --check-prefix=BOM_FILE_SHA1 %s
-# RUN: cat %t/objects/sha256/17/42972fe1ab0fe742635cd6bb9c06ef3a8f7102b7e1f9c0eaaa70bb09684a4a | FileCheck --check-prefix=BOM_FILE_SHA256 %s
+# RUN: cat %t/objects/gitoid_blob_sha1/7b/5cc942363892974b8089c3fb1cc92a1f807ba1 | FileCheck --check-prefix=BOM_FILE_SHA1 %s
+# RUN: cat %t/objects/gitoid_blob_sha256/17/42972fe1ab0fe742635cd6bb9c06ef3a8f7102b7e1f9c0eaaa70bb09684a4a | FileCheck --check-prefix=BOM_FILE_SHA256 %s
 
 # BOM_FILE_SHA1: gitoid blob sha1
 # BOM_FILE_SHA1: blob 6d1df76ef597632db1f2547700f85fb4594dcf52 bom 6acc98b0749621cae7e199d06be49836d00b95ee
