@@ -177,6 +177,9 @@ namespace llvm {
     /// The main file name if passed in explicitly.
     std::string MainFileName;
 
+    /// Path to store Omnibor info for Assembler
+    std::string OmniborAs;
+
     /// The dwarf file and directory tables from the dwarf .file directive.
     /// We now emit a line table for each compile unit. To reduce the prologue
     /// size of each line table, the files and directories used by each compile
@@ -677,6 +680,11 @@ namespace llvm {
 
     // Remaps all debug directory paths in-place as per the debug prefix map.
     void RemapDebugPaths();
+
+    /// OmniborAs
+    const std::string &getOmniborAs() const { return OmniborAs; }
+    void setOmniborAs(StringRef S) { OmniborAs = std::string(S); }
+    void setOmniborAs(const char *S) { OmniborAs = std::string(S); }
 
     /// Get the main file name for use in error messages and debug
     /// info. This can be set to ensure we've got the correct file name

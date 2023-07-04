@@ -672,6 +672,11 @@ EndStmt:
       }
   }
 
+  // If OMNIBOR is disabled, do not create a .note.omnibor section.
+  if (hasPrefix(SectionName, ".note.omnibor") &&
+      (getContext().getOmniborAs().empty()))
+    return false;
+
   MCSectionELF *Section =
       getContext().getELFSection(SectionName, Type, Flags, Size, GroupName,
                                  IsComdat, UniqueID, LinkedToSym);

@@ -32,7 +32,13 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/LEB128.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Path.h"
+#include "llvm/Support/SHA1.h"
+#include "llvm/Support/SHA256.h"
+#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
 #include <cstdint>
@@ -695,7 +701,219 @@ void MCELFStreamer::emitBundleUnlock() {
     Sec.setBundleLockState(MCSection::NotBundleLocked);
 }
 
+static std::string convertToHex(StringRef Input) {
+  static const char *const LUT = "0123456789abcdef";
+  size_t Length = Input.size();
+
+  std::string Output;
+  Output.reserve(2 * Length);
+  for (size_t i = 0; i < Length; ++i) {
+    const unsigned char c = Input[i];
+    Output.push_back(LUT[c >> 4]);
+    Output.push_back(LUT[c & 15]);
+  }
+  return Output;
+}
+
+static std::string getSHA256Hash(std::string Filename) {
+  // TODO: Check if memory buffer from sourceManager can be used
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+      llvm::MemoryBuffer::getFile(Filename, /*IsText=*/true);
+  if (!fileBuf) {
+    report_fatal_error(Twine("\nUnable to open file ") + Filename);
+    return std::string();
+  }
+
+  llvm::SHA256 Hash;
+  std::string initData =
+      "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(fileBuf.get()->getBuffer());
+  auto Result = Hash.final();
+  return convertToHex(Result);
+}
+
+static std::string getSHA1Hash(std::string Filename) {
+  // TODO: Check if memory buffer from sourceManager can be used
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+      llvm::MemoryBuffer::getFile(Filename, /*IsText=*/true);
+  if (!fileBuf) {
+    report_fatal_error(Twine("\nUnable to open file ") + Filename);
+    return std::string();
+  }
+
+  llvm::SHA1 Hash;
+  std::string initData =
+      "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(fileBuf.get()->getBuffer());
+  auto Result = Hash.final();
+  return convertToHex(Result);
+}
+
+static std::string ComputeSHA1OmniBorData(std::string filename,
+                                          std::string omnibor_path,
+                                          std::string bom_val) {
+  llvm::SHA1 Hash;
+  std::string hashContents, gitoid, gitoidHex;
+  std::vector<std::string> DepLines;
+  DepLines.push_back("gitoid blob sha1\n");
+
+  // For .s files, there is only one dependency -- the input .s file
+  // if the .s file has an omnibor id, add it to the bom section in the same
+  // line.
+  std::string sha1_file_hash = getSHA1Hash(filename);
+  if (!bom_val.empty())
+    DepLines.push_back("blob " + sha1_file_hash + " bom " + bom_val);
+  else
+    DepLines.push_back("blob " + sha1_file_hash);
+
+  // Create the Omnibor File
+  std::sort(std::next(DepLines.begin()), DepLines.end());
+  for (auto line : DepLines) {
+    hashContents.append(line);
+  }
+  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(hashContents);
+  auto Result = Hash.final();
+  gitoidHex = convertToHex(Result);
+  gitoid = Result.str();
+
+  // initialize this to the desired path
+  SmallString<128> gitoidPath(omnibor_path);
+  llvm::sys::path::append(gitoidPath, "objects/gitoid_blob_sha1");
+  llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
+  std::error_code EC;
+  EC = llvm::sys::fs::create_directories(gitoidPath, true);
+  if (EC) {
+    report_fatal_error(Twine("\nCannot write to ") + gitoidPath.str());
+    return gitoid;
+  }
+
+  llvm::sys::path::append(gitoidPath, gitoidHex.substr(2));
+  llvm::raw_fd_ostream OS(gitoidPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    report_fatal_error("\nCannot write to " + gitoidPath.str());
+    return gitoid;
+  }
+  OS << hashContents;
+  return gitoid;
+}
+
+static std::string ComputeSHA256OmniBorData(std::string filename,
+                                            std::string omnibor_path,
+                                            std::string bom_val) {
+  llvm::SHA256 Hash;
+  std::string hashContents, gitoid, gitoidHex;
+  std::vector<std::string> DepLines;
+  DepLines.push_back("gitoid blob sha256\n");
+
+  // For .s files, there is only one dependency -- the input .s file
+  // if the .s file has an omnibor id, add it to the bom section in the same
+  // line.
+  std::string sha256_file_hash = getSHA256Hash(filename);
+  if (!bom_val.empty())
+    DepLines.push_back("blob " + sha256_file_hash + " bom " + bom_val);
+  else
+    DepLines.push_back("blob " + sha256_file_hash);
+
+  // Create the Omnibor File
+  std::sort(std::next(DepLines.begin()), DepLines.end());
+  for (auto line : DepLines) {
+    hashContents.append(line);
+  }
+  std::string initData = "blob " + std::to_string(hashContents.size()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(hashContents);
+  auto Result = Hash.final();
+  gitoidHex = convertToHex(Result);
+  gitoid = Result.str();
+
+  // initialize this to the desired path
+  SmallString<128> gitoidPath(omnibor_path);
+  llvm::sys::path::append(gitoidPath, "objects/gitoid_blob_sha256");
+  llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
+  std::error_code EC;
+  EC = llvm::sys::fs::create_directories(gitoidPath, true);
+  if (EC) {
+    report_fatal_error("\nCannot write to " + gitoidPath);
+    return gitoid;
+  }
+
+  llvm::sys::path::append(gitoidPath, gitoidHex.substr(2));
+  llvm::raw_fd_ostream OS(gitoidPath, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    report_fatal_error("\nCannot write to " + gitoidPath);
+    return gitoid;
+  }
+  OS << hashContents;
+  return gitoid;
+}
+
 void MCELFStreamer::finishImpl() {
+
+  // Emit .note.omnibor section if OMNIBOR is enabled.
+  MCSection *Section = getAssembler().getContext().getELFSection(
+      ".note.omnibor", ELF::SHT_NOTE, ELF::SHF_ALLOC);
+  char *sha1;
+  char *sha256;
+  std::string filename;
+  std::string omnibor_path = getAssembler().getContext().getOmniborAs();
+  bool found_omnibor = false;
+  if (Section && !omnibor_path.empty()) {
+    const SourceMgr *SrcMgr = getContext().getSourceManager();
+    filename = std::string(SrcMgr->getMemoryBuffer(SrcMgr->getMainFileID())
+                               ->getBufferIdentifier());
+    for (MCFragment &Frag : *Section) {
+      if (Frag.getKind() == MCFragment::FT_Data) {
+        MCDataFragment &DF = cast<MCDataFragment>(Frag);
+        if (DF.getContents().size() == 39) {
+          sha1 = DF.getContents().data();
+          std::string bomVal = convertToHex(StringRef(sha1, 20));
+          std::string result =
+              ComputeSHA1OmniBorData(filename, omnibor_path, bomVal);
+          memcpy(sha1, result.c_str(), 20);
+          found_omnibor = true;
+        } else if (DF.getContents().size() == 32) {
+          sha256 = DF.getContents().data();
+          std::string bomVal = convertToHex(StringRef(sha256, 32));
+          std::string result =
+              ComputeSHA256OmniBorData(filename, omnibor_path, bomVal);
+          found_omnibor = true;
+          memcpy(sha256, result.c_str(), 32);
+        }
+      }
+    }
+  }
+
+  if (!found_omnibor && !omnibor_path.empty()) {
+    // create a new .note.omnibor section
+    std::string sha1_result =
+        ComputeSHA1OmniBorData(filename, omnibor_path, "");
+    std::string sha256_result =
+        ComputeSHA256OmniBorData(filename, omnibor_path, "");
+    PushSection();
+    SwitchSection(Section);
+
+    // SHA1
+    emitInt32(8);                   // Name size
+    emitInt32(sha1_result.size());  // Desc size
+    emitInt32(ELF::NT_GITOID_SHA1); // Type - NT_GITOID_SHA1
+    emitBytes("OMNIBOR");           // Name string
+    emitInt8(0);                    // padding
+    emitBytes(sha1_result);         // GitOID
+
+    // SHA256
+    emitInt32(8);                     // Name size
+    emitInt32(sha256_result.size());  // Desc size
+    emitInt32(ELF::NT_GITOID_SHA256); // Type - NT_GITOID_SHA1
+    emitBytes("OMNIBOR");             // Name string
+    emitInt8(0);                      // padding
+    emitBytes(sha256_result);         // GitOID
+
+    PopSection();
+  }
   // Emit the .gnu attributes section if any attributes have been added.
   if (!GNUAttributes.empty()) {
     MCSection *DummyAttributeSection = nullptr;

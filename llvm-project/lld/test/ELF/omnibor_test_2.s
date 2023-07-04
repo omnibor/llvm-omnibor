@@ -1,22 +1,21 @@
 # RUN: rm -rf %t && mkdir %t
-# RUN: llvm-mc -filetype=obj -triple=x86_64-pc-linux %S/Inputs/omnibor_add.s -o %t/omnibor_add.o
-# RUN: llvm-mc -filetype=obj -triple=x86_64-pc-linux %S/Inputs/omnibor_main.s -o %t/omnibor_main.o
+# RUN: llvm-mc -filetype=obj --omnibor-as=%t -triple=x86_64-pc-linux %S/Inputs/omnibor_add.s -o %t/omnibor_add.o
+# RUN: llvm-mc -filetype=obj --omnibor-as=%t -triple=x86_64-pc-linux %S/Inputs/omnibor_main.s -o %t/omnibor_main.o
 # RUN: ld.lld %t/omnibor_add.o %t/omnibor_main.o -e main --omnibor -o %t/omnibor_add.exe
 # RUN: llvm-readelf -n %t/omnibor_add.exe | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-# RUN: cat %t/objects/gitoid_blob_sha1/7b/5cc942363892974b8089c3fb1cc92a1f807ba1 | FileCheck --check-prefix=BOM_FILE_SHA1 %s
-# RUN: cat %t/objects/gitoid_blob_sha256/17/42972fe1ab0fe742635cd6bb9c06ef3a8f7102b7e1f9c0eaaa70bb09684a4a | FileCheck --check-prefix=BOM_FILE_SHA256 %s
-
+# RUN: cat %t/objects/gitoid_blob_sha1/c0/951112087ba0a488720ac70fff24f6312133e3 | FileCheck --check-prefix=BOM_FILE_SHA1 %s
+# RUN: cat %t/objects/gitoid_blob_sha256/69/dd44e518950a04e5a64fd21922b7ba88294d1d80cc90808ef75e0dee7dd261 | FileCheck --check-prefix=BOM_FILE_SHA256 %s
 # BOM_FILE_SHA1: gitoid blob sha1
-# BOM_FILE_SHA1: blob 6d1df76ef597632db1f2547700f85fb4594dcf52 bom 6acc98b0749621cae7e199d06be49836d00b95ee
-# BOM_FILE_SHA1: blob 94c40262747e3093f3804587dd87a10584c0e56b bom 26c9992d3b1f610d20accdf677eb53cf45b554d2
+# BOM_FILE_SHA1: blob 980f5ba708b17f52a1273defc116409194ad6c04 bom 5efa5bb8d8d368521ea95bd2dd84a862f68cbc1c
+# BOM_FILE_SHA1: blob dd1bf717b9dfa1655c1a9724233644d07e369b4d bom 264d9eeb1db1be9cc93b76420e71516d69d25ff1
 
 # BOM_FILE_SHA256: gitoid blob sha256
-# BOM_FILE_SHA256: blob 32350816f9208b80c71b3afc9282f22a7796e1be6c91adb2d1672cbe0c0bd735 bom b0104b046077ffa030ceb715eedd60987fb34f5f5db4e109e8a35ed1f1f5e238
-# BOM_FILE_SHA256: blob c0ddd5ecc9a502502f25dab24b213efcf50f7eb0c6ba22b69fb10162499e70a4 bom b52743df5edad0f12680e6c1172df98d5f12d8c91d0868a72e277e7441868c12
+# BOM_FILE_SHA256: blob 39adae03571b754e376141f3ea08ac978f71420a6f9958eb80eec40dfadd6317 bom 217959aa06f15a4d6781d7902ae52cd1fdbb20ee5b8907f293d2aceaf2f8aad2
+# BOM_FILE_SHA256: blob 3ab2db3ff215c286c5546cbedea5bbd26c9cf5a10562eec2dc016d25de71cb9c bom db0170e1d04301f33163c7974f5f27b5ab248c987f9bbf7f0b1562c1e3c54db8
 
 # BOM_NOTE_SECTION: Displaying notes found in: .note.omnibor
 # BOM_NOTE_SECTION-NEXT: Owner                Data size        Description
 # BOM_NOTE_SECTION-NEXT: 0x00000014       NT_GITOID_SHA1
-# BOM_NOTE_SECTION-NEXT: SHA1 GitOID: 7b5cc942363892974b8089c3fb1cc92a1f807ba1
+# BOM_NOTE_SECTION-NEXT: SHA1 GitOID: c0951112087ba0a488720ac70fff24f6312133e3
 # BOM_NOTE_SECTION-NEXT: 0x00000020       NT_GITOID_SHA256
-# BOM_NOTE_SECTION-NEXT: SHA256 GitOID: 1742972fe1ab0fe742635cd6bb9c06ef3a8f7102b7e1f9c0eaaa70bb09684a4a
+# BOM_NOTE_SECTION-NEXT: SHA256 GitOID: 69dd44e518950a04e5a64fd21922b7ba88294d1d80cc90808ef75e0dee7dd261

@@ -6024,6 +6024,8 @@ def n : Flag<["-"], "n">,
 // Frontend Options
 def filetype : Separate<["-"], "filetype">,
     HelpText<"Specify the output file type ('asm', 'null', or 'obj')">;
+def omnibor_as : Separate<["-"], "omnibor-as">,
+    HelpText<"Generate OmniBOR data in the given path">;
 
 // Transliterate Options
 def output_asm_variant : Separate<["-"], "output-asm-variant">,

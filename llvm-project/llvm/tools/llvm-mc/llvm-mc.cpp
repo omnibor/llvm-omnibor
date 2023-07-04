@@ -45,6 +45,10 @@ static mc::RegisterMCTargetOptionsFlags MOF;
 
 static cl::OptionCategory MCCategory("MC Options");
 
+static cl::opt<std::string> OmniborAs("omnibor-as",
+                                      cl::desc("<Generate Omnibor data>"),
+                                      cl::init(""), cl::cat(MCCategory));
+
 static cl::opt<std::string> InputFilename(cl::Positional,
                                           cl::desc("<input file>"),
                                           cl::init("-"), cl::cat(MCCategory));
@@ -486,6 +490,12 @@ int main(int argc, char **argv) {
     const auto &KV = StringRef(Arg).split('=');
     Ctx.addDebugPrefixMapEntry(std::string(KV.first), std::string(KV.second));
   }
+
+  const char *env = ::getenv("OMNIBOR_DIR");
+  if (!OmniborAs.empty())
+    Ctx.setOmniborAs(OmniborAs);
+  else if (env)
+    Ctx.setOmniborAs(env);
   if (!MainFileName.empty())
     Ctx.setMainFileName(MainFileName);
   if (GenDwarfForAssembly)

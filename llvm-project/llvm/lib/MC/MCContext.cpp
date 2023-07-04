@@ -148,6 +148,7 @@ void MCContext::reset() {
   Instances.clear();
   CompilationDir.clear();
   MainFileName.clear();
+  OmniborAs.clear();
   MCDwarfLineTablesCUMap.clear();
   SectionsForRanges.clear();
   MCGenDwarfLabelEntries.clear();

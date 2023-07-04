@@ -104,7 +104,7 @@ private:
   std::shared_ptr<std::vector<std::string>> BomDependencies;
 };
 
-// Duplicating FileGenerator for generating BomDependenciesas the semantics
+// Duplicating FileGenerator for generating BomDependencies as the semantics
 // of BomDependencies and -MD could differ. For example, system headers are
 // always treated as a dependency for omnibor.
 class BomDependencyGenerator : public DependencyCollector {
