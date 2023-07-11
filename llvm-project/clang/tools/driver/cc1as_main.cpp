@@ -115,6 +115,7 @@ struct AssemblerInvocation {
     FT_Obj   ///< Object file output.
   };
   FileType OutputType;
+  std::string OmniborAs;
   unsigned ShowHelp : 1;
   unsigned ShowVersion : 1;
 
@@ -280,6 +281,9 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
     } else
       Opts.OutputType = FileType(OutputType);
   }
+  if (Arg *A = Args.getLastArg(OPT_omnibor_as)) {
+    Opts.OmniborAs = A->getValue();
+  }
   Opts.ShowHelp = Args.hasArg(OPT_help);
   Opts.ShowVersion = Args.hasArg(OPT_version);
 
@@ -435,6 +439,12 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
   if (Opts.GenDwarfForAssembly)
     Ctx.setGenDwarfRootFile(Opts.InputFile,
                             SrcMgr.getMemoryBuffer(BufferIndex)->getBuffer());
+
+  const char *env = ::getenv("OMNIBOR_DIR");
+  if (!Opts.OmniborAs.empty())
+    Ctx.setOmniborAs(Opts.OmniborAs);
+  else if (env)
+    Ctx.setOmniborAs(env);
 
   std::unique_ptr<MCStreamer> Str;
 

@@ -1113,9 +1113,9 @@ const MCExpr *TargetLoweringObjectFileELF::lowerDSOLocalEquivalent(
 }
 
 MCSection *TargetLoweringObjectFileELF::getSectionForOmniBor() const {
-  // .bom
+  // .note.omnibor
   return getContext().getELFSection(".note.omnibor", ELF::SHT_NOTE,
-                                    ELF::SHF_MERGE, 1);
+                                    ELF::SHF_ALLOC);
 }
 
 MCSection *TargetLoweringObjectFileELF::getSectionForCommandLines() const {
