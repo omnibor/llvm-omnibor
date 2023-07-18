@@ -337,6 +337,13 @@ template <class ELFT> void elf::createSyntheticSections() {
   if (config->OmniBorDir.length()) {
     if ((in.OmniBor = BomSection<ELFT>::create()))
       add(*in.OmniBor);
+  } else {
+    // Do not generate .note.omnibor if it is not enabled.
+    for (InputSectionBase *sec : inputSections) {
+      if (sec->name == ".note.omnibor") {
+        sec->markDead();
+      }
+    }
   }
 
   StringRef relaDynName = config->isRela ? ".rela.dyn" : ".rel.dyn";
