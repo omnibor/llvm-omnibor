@@ -570,7 +570,6 @@
 // Clean up copy of large binary copied into temp directory to avoid bloat.
 // RUN: rm -f "%t.r/with spaces/clang" || true
 
-// RUN: %clang -### -S -target x86_64-unknown-linux -frecord-omnibor %s 2>&1 | FileCheck -check-prefix=CHECK-RECORD-OMNIBOR %s
 // RUN: %clang -### -S -target x86_64-unknown-linux -fno-record-omnibor %s 2>&1 | FileCheck -check-prefix=CHECK-NO-RECORD-OMNIBOR %s
 // RUN: %clang -### -S -ftrivial-auto-var-init=uninitialized %s 2>&1 | FileCheck -check-prefix=CHECK-TRIVIAL-UNINIT %s
 // RUN: %clang -### -S -ftrivial-auto-var-init=pattern %s 2>&1 | FileCheck -check-prefix=CHECK-TRIVIAL-PATTERN %s

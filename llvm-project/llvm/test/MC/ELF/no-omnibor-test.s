@@ -1,17 +1,17 @@
 # RUN: rm -rf %t && mkdir %t
-# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc -filetype=obj -triple=x86_64-linux-gnu %S/no-omnibor.s -o %t/no-omnibor-1.o
+# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/no-omnibor.s -o %t/no-omnibor-1.o
 # RUN: llvm-readelf -n %t/no-omnibor-1.o | FileCheck --check-prefix=OMNIBOR-1 %s
 # RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha1/e1/c058d0ab49e12b2a0063be9b62efea9f2453c0 | FileCheck --check-prefix=OMNIBOR-SHA1-NOTE %s
 # RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha256/cd/ae8735776aa8f7e20531f631dd73affbd992dfc7d464ec2586760edd071893 | FileCheck --check-prefix=OMNIBOR-SHA256-NOTE %s
 
-# RUN: llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/no-omnibor.s -o %t/no-omnibor-2.o
+# RUN: llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/no-omnibor.s -o %t/no-omnibor-2.o
 # RUN: llvm-readelf -n %t/no-omnibor-2.o | FileCheck --check-prefix=OMNIBOR-1 %s
 # RUN: cat %t/objects/gitoid_blob_sha1/e1/c058d0ab49e12b2a0063be9b62efea9f2453c0 | FileCheck --check-prefix=OMNIBOR-SHA1-NOTE %s
 # RUN: cat %t/objects/gitoid_blob_sha256/cd/ae8735776aa8f7e20531f631dd73affbd992dfc7d464ec2586760edd071893 | FileCheck --check-prefix=OMNIBOR-SHA256-NOTE %s
 
 # RUN: rm -rf %t/env_omnibor_dir
 # RUN: rm -rf %t/objects
-# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/no-omnibor.s -o %t/no-omnibor-3.o
+# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/no-omnibor.s -o %t/no-omnibor-3.o
 # RUN: llvm-readelf -n %t/no-omnibor-3.o | FileCheck --check-prefix=OMNIBOR-1 %s
 # RUN: cat %t/objects/gitoid_blob_sha1/e1/c058d0ab49e12b2a0063be9b62efea9f2453c0 | FileCheck --check-prefix=OMNIBOR-SHA1-NOTE %s
 # RUN: cat %t/objects/gitoid_blob_sha256/cd/ae8735776aa8f7e20531f631dd73affbd992dfc7d464ec2586760edd071893 | FileCheck --check-prefix=OMNIBOR-SHA256-NOTE %s

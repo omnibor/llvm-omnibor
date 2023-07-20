@@ -1340,8 +1340,6 @@ def frecord_command_line : Flag<["-"], "frecord-command-line">,
   Group<f_clang_Group>;
 def fno_record_command_line : Flag<["-"], "fno-record-command-line">,
   Group<f_clang_Group>;
-def frecord_omnibor: Flag<["-"], "frecord-omnibor">,
-  Group<f_clang_Group>;
 def frecord_omnibor_EQ : Joined<["-"], "frecord-omnibor=">,
   Group<f_clang_Group>, MetaVarName<"<directory>">;
 def fno_record_omnibor: Flag<["-"], "fno-record-omnibor">,

@@ -1,24 +1,24 @@
 # RUN: rm -rf %t && mkdir %t
-# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc -filetype=obj -triple=x86_64-linux-gnu %S/omnibor.s -o %t/omnibor-1.o
+# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/omnibor.s -o %t/omnibor-1.o
 # RUN: llvm-readelf -n %t/omnibor-1.o | FileCheck --check-prefix=OMNIBOR-1 %s
 # RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha1/70/a1f821592cc68919c7d2aebbad02c58dfb5d09 | FileCheck --check-prefix=OMNIBOR-SHA1-NOTE %s
 # RUN: cat %t/env_omnibor_dir/objects/gitoid_blob_sha256/1c/3b786338c344b1a094d7df2d6c2dbdbecc9eb3987004a173cd1c07dd108faf | FileCheck --check-prefix=OMNIBOR-SHA256-NOTE %s
 
-# RUN: llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/omnibor.s -o %t/omnibor-2.o
+# RUN: llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/omnibor.s -o %t/omnibor-2.o
 # RUN: llvm-readelf -n %t/omnibor-2.o | FileCheck --check-prefix=OMNIBOR-1 %s
 # RUN: cat %t/objects/gitoid_blob_sha1/70/a1f821592cc68919c7d2aebbad02c58dfb5d09 | FileCheck --check-prefix=OMNIBOR-SHA1-NOTE %s
 # RUN: cat %t/objects/gitoid_blob_sha256/1c/3b786338c344b1a094d7df2d6c2dbdbecc9eb3987004a173cd1c07dd108faf | FileCheck --check-prefix=OMNIBOR-SHA256-NOTE %s
 
 # RUN: rm -rf %t/env_omnibor_dir
 # RUN: rm -rf %t/objects
-# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/omnibor.s -o %t/omnibor-3.o
+# RUN: env OMNIBOR_DIR="%t/env_omnibor_dir" llvm-mc --omnibor-as=%t -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/omnibor.s -o %t/omnibor-3.o
 # RUN: llvm-readelf -n %t/omnibor-3.o | FileCheck --check-prefix=OMNIBOR-1 %s
 # RUN: cat %t/objects/gitoid_blob_sha1/70/a1f821592cc68919c7d2aebbad02c58dfb5d09 | FileCheck --check-prefix=OMNIBOR-SHA1-NOTE %s
 # RUN: cat %t/objects/gitoid_blob_sha256/1c/3b786338c344b1a094d7df2d6c2dbdbecc9eb3987004a173cd1c07dd108faf | FileCheck --check-prefix=OMNIBOR-SHA256-NOTE %s
 
 # RUN: rm -rf %t/env_omnibor_dir
 # RUN: rm -rf %t/objects
-# RUN: llvm-mc -filetype=obj -triple=x86_64-linux-gnu %S/omnibor.s -o %t/omnibor.o
+# RUN: llvm-mc -filetype=obj -triple=x86_64-linux-gnu %S/Inputs/omnibor.s -o %t/omnibor.o
 # RUN: llvm-readelf -n %t/omnibor.o | FileCheck --allow-empty --check-prefix=NO-OMNIBOR %s
 
 # OMNIBOR-1: Displaying notes found in: .note.omnibor

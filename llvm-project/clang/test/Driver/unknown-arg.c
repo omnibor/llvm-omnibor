@@ -23,6 +23,8 @@
 // RUN: not %clang -cc1asphalt -help 2>&1 | \
 // RUN:     FileCheck %s --check-prefix=UNKNOWN-INTEGRATED
 
+// RUN: not %clang -### -frecord-omnibor -S -target x86_64-unknown-linux %s 2>&1 | FileCheck %s --check-prefix=UNKNOWN-OMNIBOR
+
 // This needs to exit non-0, for configure scripts.
 // RUN: not %clang /GR-
 
@@ -60,6 +62,7 @@
 // CC1AS-DID-YOU-MEAN: error: unknown argument '-hell'; did you mean '-help'?
 // CC1AS-DID-YOU-MEAN: error: unknown argument '--version'; did you mean '-version'?
 // UNKNOWN-INTEGRATED: error: unknown integrated tool '-cc1asphalt'. Valid tools include '-cc1' and '-cc1as'.
+// UNKNOWN-OMNIBOR: error: unknown argument: '-frecord-omnibor'
 
 // RUN: %clang -S %s -o %t.s  -Wunknown-to-clang-option 2>&1 | FileCheck --check-prefix=IGNORED %s
 
