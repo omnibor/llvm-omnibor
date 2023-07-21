@@ -1,7 +1,7 @@
 # RUN: rm -rf %t && mkdir %t
 # RUN: llvm-mc -filetype=obj --omnibor-as=%t -triple=x86_64-pc-linux %S/Inputs/omnibor_add.s -o %t/omnibor_add.o
 # RUN: llvm-mc -filetype=obj --omnibor-as=%t -triple=x86_64-pc-linux %S/Inputs/omnibor_main.s -o %t/omnibor_main.o
-# RUN: ld.lld %t/omnibor_add.o %t/omnibor_main.o -e main --omnibor -o %t/omnibor_add.exe
+# RUN: ld.lld %t/omnibor_add.o %t/omnibor_main.o -e main --omnibor=%t -o %t/omnibor_add.exe
 # RUN: llvm-readelf -n %t/omnibor_add.exe | FileCheck --check-prefix=BOM_NOTE_SECTION %s
 # RUN: cat %t/objects/gitoid_blob_sha1/c0/951112087ba0a488720ac70fff24f6312133e3 | FileCheck --check-prefix=BOM_FILE_SHA1 %s
 # RUN: cat %t/objects/gitoid_blob_sha256/69/dd44e518950a04e5a64fd21922b7ba88294d1d80cc90808ef75e0dee7dd261 | FileCheck --check-prefix=BOM_FILE_SHA256 %s

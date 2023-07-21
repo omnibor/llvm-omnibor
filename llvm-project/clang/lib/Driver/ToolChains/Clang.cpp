@@ -6805,32 +6805,21 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   const char *Exec = D.getClangProgramPath();
 
+  // Generate Omnibor data in the given dir if command line option is specified.
+  // If not, generate Omnibor data if OMNIBOR_DIR environment variable is set.
+  // Otherwise, do not generate Omnibor data.
   auto OmniBorRecordSwitches = Args.hasFlag(
-      options::OPT_frecord_omnibor, options::OPT_frecord_omnibor_EQ,
-      options::OPT_fno_record_omnibor, false);
+      options::OPT_frecord_omnibor_EQ, options::OPT_fno_record_omnibor, false);
 
-  // If OMNIBOR_DIR environment variable is set, generate Omnibor data in the
-  // specified dir.
-  // Generate Omnibor data if frecord-omnibor option is set. Use the directory
-  // if specified along with the option, otherwise, the default is to write
-  // the bom files in the same directory as the object file.
   SmallString<128> OutputPath;
-  if (char *env = ::getenv("OMNIBOR_DIR")) {
-    OutputPath = env;
-  }
-  if (OutputPath.str().empty() && OmniBorRecordSwitches) {
+  if (OmniBorRecordSwitches) {
     auto OmniBorDir = Args.getLastArg(options::OPT_frecord_omnibor_EQ);
     if (OmniBorDir) {
       auto ArgValue = OmniBorDir->getValue();
       OutputPath = ArgValue;
     }
-    // Pass the dir name where the object file is created.
-    else if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
-      OutputPath = OutputOpt->getValue();
-      llvm::sys::path::remove_filename(OutputPath);
-    }
-    if (OutputPath.str().empty())
-      OutputPath = StringRef("./");
+  } else if (char *env = ::getenv("OMNIBOR_DIR")) {
+    OutputPath = env;
   }
   if (!OutputPath.str().empty()) {
     llvm::sys::path::append(OutputPath, "objects");

@@ -1034,25 +1034,15 @@ static void readConfigs(opt::InputArgList &args) {
       args.hasFlag(OPT_fortran_common, OPT_no_fortran_common, true);
   config->gcSections = args.hasFlag(OPT_gc_sections, OPT_no_gc_sections, false);
 
-  // OmniBor
-  auto *OmniBorArg = args.getLastArg(OPT_omnibor, OPT_omnibor_eq);
+  // --omnibor= option takes precedence over environment variable.
   SmallString<128> gitOidPath;
-  // Environment variable takes precedence over the --omnibor= option.
-  const char *OmniBorDir = getenv("OMNIBOR_DIR");
-  if (OmniBorDir) {
-    gitOidPath = StringRef(OmniBorDir);
-  }
-  // Process --omnibor option if env variable OMNIBOR_DIR is not set
-  if (gitOidPath.str().empty() && OmniBorArg) {
-    if (OmniBorArg->getOption().getID() == OPT_omnibor_eq) {
-      gitOidPath = OmniBorArg->getValue();
-    } else {
-      // choose default dir to store omnibor data
-      std::string filename = args.getLastArgValue(OPT_o).str();
-      gitOidPath = StringRef(filename);
-      llvm::sys::path::remove_filename(gitOidPath);
-      if (gitOidPath.empty())
-        gitOidPath = StringRef("./");
+  auto OmniBorArg = args.getLastArgValue(OPT_omnibor_eq);
+  if (!OmniBorArg.empty())
+    gitOidPath = StringRef(OmniBorArg.str());
+  else {
+    const char *OmniBorDir = getenv("OMNIBOR_DIR");
+    if (OmniBorDir) {
+      gitOidPath = StringRef(OmniBorDir);
     }
   }
   if (!gitOidPath.empty()) {
