@@ -183,6 +183,10 @@ public:
   /// The string containing the gitoid of the omnibor file.
   std::string RecordOmniBor;
 
+  /// The string containing the commandline for the Omnibor metadata,
+  /// if non-empty.
+  std::string OmniborCommandLine;
+
   /// List of dependent source/header files.
   /// This is shared with DependencyOuputOptions.
   /// This has same contents as Dependencies in DependencyCollector.

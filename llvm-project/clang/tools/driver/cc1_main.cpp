@@ -38,6 +38,8 @@
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
+#include "llvm/Support/SHA1.h"
+#include "llvm/Support/SHA256.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TimeProfiler.h"
@@ -181,6 +183,38 @@ static int PrintSupportedCPUs(std::string TargetStr) {
   return 0;
 }
 
+static std::string convertToHex(StringRef Input) {
+  static const char *const LUT = "0123456789abcdef";
+  size_t Length = Input.size();
+
+  std::string Output;
+  Output.reserve(2 * Length);
+  for (size_t i = 0; i < Length; ++i) {
+    const unsigned char c = Input[i];
+    Output.push_back(LUT[c >> 4]);
+    Output.push_back(LUT[c & 15]);
+  }
+  return Output;
+}
+
+static std::string getSHA1Hash(std::string Filename) {
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+      llvm::MemoryBuffer::getFile(Filename, /*IsText=*/true);
+  if (!fileBuf) {
+    // Diags.Report(diag::err_fe_error_opening) << Filename;
+    llvm::errs() << "\n error opening " << Filename;
+    return std::string();
+  }
+
+  llvm::SHA1 Hash;
+  std::string initData =
+      "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(fileBuf.get()->getBuffer());
+  auto Result = Hash.final();
+  return convertToHex(Result);
+}
+
 int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   ensureSufficientStack();
 
@@ -271,6 +305,50 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   // potentially about to delete. Uninstall the handler now so that any
   // later errors use the default handling behavior instead.
   llvm::remove_fatal_error_handler();
+
+  if (!Clang->getCodeGenOpts().RecordOmniBor.empty()) {
+    SmallString<128> gitoidPath(Clang->getCodeGenOpts().RecordOmniBor);
+    llvm::sys::path::append(gitoidPath, "metadata/llvm");
+    auto EC =
+        llvm::sys::fs::create_directories(gitoidPath, /*IgnoreExisting=*/true);
+    if (EC)
+      llvm::errs() << "\nCannot create metadata file ";
+
+    std::vector<std::string> MetadataLines;
+    std::string outLine("\noutput: ");
+    outLine.append(Clang->getFrontendOpts().OutputFile);
+    MetadataLines.push_back(outLine);
+
+    if (Clang->getCodeGenOpts().BomDependencies->size()) {
+      std::vector<std::string> &Deps =
+          *(Clang->getCodeGenOpts().BomDependencies);
+      for (auto file : Deps) {
+        std::string Line = "\ninput " + file;
+        MetadataLines.push_back(Line);
+      }
+    }
+
+    // Metadata contents
+    std::string MetadataContents;
+    for (auto line : MetadataLines)
+      MetadataContents.append(line);
+
+    // Write command line
+    if (!Clang->getCodeGenOpts().OmniborCommandLine.empty()) {
+      MetadataContents.append("\nbuild_cmd: ");
+      MetadataContents.append(Clang->getCodeGenOpts().OmniborCommandLine);
+    }
+
+    // Write metadata
+    std::string artifact_id = getSHA1Hash(Clang->getFrontendOpts().OutputFile);
+    llvm::sys::path::append(gitoidPath, artifact_id);
+    std::string MetadataFile(gitoidPath);
+    llvm::raw_fd_ostream OSM(MetadataFile, EC, llvm::sys::fs::OF_TextWithCRLF);
+    if (EC) {
+      llvm::errs() << MetadataFile << EC.message();
+    }
+    OSM << MetadataContents;
+  }
 
   // When running with -disable-free, don't do any destruction or shutdown.
   if (Clang->getFrontendOpts().DisableFree) {

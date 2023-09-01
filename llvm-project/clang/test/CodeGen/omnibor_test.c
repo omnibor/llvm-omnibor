@@ -1,5 +1,12 @@
 // RUN: rm -rf %t && mkdir %t
 
+// RUN: rm -f objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f
+// RUN: env OMNIBOR_DIR= %clang -c -frecord-omnibor=%t %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
+// RUN: llvm-readelf -n omnibor.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
+// RUN: cat %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
+// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
+// RUN: cat %t/metadata/llvm/17274786fd44c95cae7ccb2d0b29ca1738c3cbb1 | FileCheck --check-prefix=METADATA_CONTENTS %s
+
 // RUN: %clang -c -frecord-omnibor=%t -o %t/omnibor_1.o %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
 // RUN: llvm-readelf -n %t/omnibor_1.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
 // RUN: cat %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
@@ -27,12 +34,6 @@
 // RUN: cat %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
 // RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
 
-// RUN: rm -f objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f
-// RUN: env OMNIBOR_DIR= %clang -c -frecord-omnibor=%t %S/Inputs/omnibor.c -I%S/Inputs/omnibor.h
-// RUN: llvm-readelf -n omnibor.o | FileCheck --check-prefix=BOM_NOTE_SECTION %s
-// RUN: cat %t/objects/gitoid_blob_sha1/0b/e9b91c3e456c910b32afc862ffd073b7c61d5f | FileCheck --check-prefix=BOM_FILE_SHA1_CONTENTS %s
-// RUN: cat %t/objects/gitoid_blob_sha256/58/ed318e337ad6260f471c086e9c9985543c5fbd507c3b44924f5af37bd0ea96 | FileCheck --check-prefix=BOM_FILE_SHA256_CONTENTS %s
-
 // BOM_NOTE_SECTION: Displaying notes found in: .note.omnibor
 // BOM_NOTE_SECTION: Owner                Data size        Description
 // BOM_NOTE_SECTION: OMNIBOR               0x00000014       NT_GITOID_SHA1
@@ -47,3 +48,7 @@
 // BOM_FILE_SHA256_CONTENTS: gitoid:blob:sha256
 // BOM_FILE_SHA256_CONTENTS: blob 465be75836446b37f31c5db1f29a8689f37cd5625d4b30237877703fc1070f5e
 // BOM_FILE_SHA256_CONTENTS: blob 8ad020236bd23736a75699ba4e83f52593d61c4c9f8d5932b57fce011f832bf8
+
+// METADATA_CONTENTS: output: omnibor.o
+// METADATA_CONTENTS_NEXT: input {{.*}}/omnibor.c
+// METADATA_CONTENTS_NEXT: input {{.*}}/omnibor.h
