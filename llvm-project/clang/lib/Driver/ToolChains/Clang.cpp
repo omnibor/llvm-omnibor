@@ -6822,10 +6822,26 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     OutputPath = env;
   }
   if (!OutputPath.str().empty()) {
-    llvm::sys::path::append(OutputPath, "objects");
     CmdArgs.push_back("-record-omnibor");
     CmdArgs.push_back(Args.MakeArgString(OutputPath));
-    // Create the .bom/objects directory
+
+    // Collect command line arguments as metadata
+    ArgStringList OriginalArgs;
+    for (const auto &Arg : Args)
+      Arg->render(Args, OriginalArgs);
+
+    SmallString<256> Flags;
+    EscapeSpacesAndBackslashes(Exec, Flags);
+    for (const char *OriginalArg : OriginalArgs) {
+      SmallString<128> EscapedArg;
+      EscapeSpacesAndBackslashes(OriginalArg, EscapedArg);
+      Flags += " ";
+      Flags += EscapedArg;
+    }
+    auto FlagsArgString = Args.MakeArgString(Flags);
+    CmdArgs.push_back("-omnibor-command-line");
+    CmdArgs.push_back(FlagsArgString);
+
     auto EC =
         llvm::sys::fs::create_directories(OutputPath, /*IgnoreExisting=*/true);
     if (EC)

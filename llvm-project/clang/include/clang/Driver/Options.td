@@ -4991,6 +4991,9 @@ def record_command_line : Separate<["-"], "record-command-line">,
 def record_omnibor: Separate<["-"], "record-omnibor">,
   HelpText<"The string to embed in the .note.omnibor section.">,
   MarshallingInfoString<CodeGenOpts<"RecordOmniBor">>;
+def omnibor_command_line : Separate<["-"], "omnibor-command-line">,
+  HelpText<"The command line string to be recorded in Omnibor metadata file.">,
+  MarshallingInfoString<CodeGenOpts<"OmniborCommandLine">>;
 def compress_debug_sections_EQ : Joined<["-", "--"], "compress-debug-sections=">,
     HelpText<"DWARF debug sections compression type">, Values<"none,zlib">,
     NormalizedValuesScope<"llvm::DebugCompressionType">, NormalizedValues<["None", "Z"]>,

@@ -6452,6 +6452,7 @@ static std::string ComputeSHA1OmniBorData(CodeGenModule &CGM,
   gitoid = Result.str();
 
   SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordOmniBor);
+  llvm::sys::path::append(gitoidPath, "objects");
   llvm::sys::path::append(gitoidPath, "gitoid_blob_sha1");
   llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
   std::error_code EC;
@@ -6496,6 +6497,7 @@ static std::string ComputeSHA256OmniBorData(CodeGenModule &CGM,
   gitoid = Result.str();
 
   SmallString<128> gitoidPath(CGM.getCodeGenOpts().RecordOmniBor);
+  llvm::sys::path::append(gitoidPath, "objects");
   llvm::sys::path::append(gitoidPath, "gitoid_blob_sha256");
   llvm::sys::path::append(gitoidPath, gitoidHex.substr(0, 2));
   std::error_code EC;
