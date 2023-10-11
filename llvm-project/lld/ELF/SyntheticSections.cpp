@@ -64,6 +64,9 @@ struct Omnibor {
 };
 using FileHashBomMap = std::map<std::string, struct Omnibor>;
 
+// Metadata contents compatible to bomsh
+std::string MetadataContents;
+
 constexpr size_t MergeNoTailSection::numShards;
 
 static uint64_t readUint(uint8_t *buf) {
@@ -131,23 +134,20 @@ template <class ELFT> void BomSection<ELFT>::writeTo(uint8_t *buf) {
   memcpy(buf + 20, sha256_contents.data(), sha256_contents.size());
 }
 
-// TODO: Move this function.
-static std::string convertToHex(StringRef Input) {
-  static const char *const LUT = "0123456789abcdef";
-  size_t Length = Input.size();
-
-  std::string Output;
-  Output.reserve(2 * Length);
-  for (size_t i = 0; i < Length; ++i) {
-    const unsigned char c = Input[i];
-    Output.push_back(LUT[c >> 4]);
-    Output.push_back(LUT[c & 15]);
-  }
-  return Output;
-}
-
 static void genArtifactIds(FileHashBomMap &BomMap) {
   struct Omnibor bomData;
+
+  std::string OutFilename(config->outputFile.str());
+  // StringRef BomFile = StringRef(OutFilename);
+
+  // Emit gitbom info for Outputfile
+  // Getting the hash of the outputfile is tricky as the file has not been
+  // written at this point.
+  MetadataContents.append("\noutput: ");
+  MetadataContents.append(" path: ");
+  SmallString<128> OutFile(OutFilename);
+  llvm::sys::fs::make_absolute(OutFile);
+  MetadataContents.append(OutFile.c_str());
 
   for (StringRef path : config->dependencyFiles) {
     llvm::SHA1 SHA1_Hash;
@@ -165,6 +165,14 @@ static void genArtifactIds(FileHashBomMap &BomMap) {
     SHA1_Hash.update(fileBuf.get()->getBuffer());
     auto Result_sha1 = SHA1_Hash.final();
     bomData.sha1_artifact_id = convertToHex(Result_sha1);
+
+    // Collect Metadata
+    config->SHA1_MetadataContents.append("\ninput: ");
+    config->SHA1_MetadataContents.append(bomData.sha1_artifact_id);
+    config->SHA1_MetadataContents.append(" path: ");
+    SmallString<128> InFilename(path);
+    llvm::sys::fs::make_absolute(InFilename);
+    config->SHA1_MetadataContents.append(InFilename.c_str());
 
     // sha256
     SHA256_Hash.update(StringRef(initData));
@@ -204,7 +212,7 @@ static std::string createSHA1_BomFile(FileHashBomMap &BomMap) {
 
   SmallString<128> gitOidPath;
   gitOidPath = StringRef(config->OmniBorDir);
-  llvm::sys::path::append(gitOidPath, "gitoid_blob_sha1");
+  llvm::sys::path::append(gitOidPath, "objects/gitoid_blob_sha1");
   llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directories(gitOidPath, true);
@@ -248,7 +256,7 @@ static std::string createSHA256_BomFile(FileHashBomMap &BomMap) {
 
   SmallString<128> gitOidPath;
   gitOidPath = StringRef(config->OmniBorDir);
-  llvm::sys::path::append(gitOidPath, "gitoid_blob_sha256");
+  llvm::sys::path::append(gitOidPath, "objects/gitoid_blob_sha256");
   llvm::sys::path::append(gitOidPath, gitOid.substr(0, 2));
   std::error_code EC;
   EC = llvm::sys::fs::create_directories(gitOidPath, true);

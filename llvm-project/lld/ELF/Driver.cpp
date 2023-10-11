@@ -972,6 +972,14 @@ static bool isValidReportString(StringRef arg) {
 
 // Initializes Config members by the command line options.
 static void readConfigs(opt::InputArgList &args) {
+
+  // Collect the command line arguments for ld.lld
+  config->CommandLine.append("ld.lld ");
+  for (unsigned i = 0; i < args.getNumInputArgStrings(); i++) {
+    config->CommandLine.append(args.getArgString(i));
+    config->CommandLine.append(" ");
+  }
+
   errorHandler().verbose = args.hasArg(OPT_verbose);
   errorHandler().vsDiagnostics =
       args.hasArg(OPT_visual_studio_diagnostics_format, false);
@@ -1046,7 +1054,6 @@ static void readConfigs(opt::InputArgList &args) {
     }
   }
   if (!gitOidPath.empty()) {
-    llvm::sys::path::append(gitOidPath, "objects");
     config->OmniBorDir = gitOidPath.str().str();
     auto EC = llvm::sys::fs::create_directories(config->OmniBorDir, true);
     if (EC)
@@ -1756,22 +1763,6 @@ static void handleLibcall(StringRef name) {
 
   if (isBitcode(mb))
     sym->extract();
-}
-
-// TODO: Move this to a common location. This is
-// being used by both clang and lld.
-static std::string convertToHex(StringRef Input) {
-  static const char *const LUT = "0123456789abcdef";
-  size_t Length = Input.size();
-
-  std::string Output;
-  Output.reserve(2 * Length);
-  for (size_t i = 0; i < Length; ++i) {
-    const unsigned char c = Input[i];
-    Output.push_back(LUT[c >> 4]);
-    Output.push_back(LUT[c & 15]);
-  }
-  return Output;
 }
 
 // Handle --dependency-file=<path>. If that option is given, lld creates a

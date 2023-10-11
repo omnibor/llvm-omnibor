@@ -4,6 +4,8 @@
 # RUN: llvm-readelf -n %t/omnibor.exe | FileCheck --check-prefix=BOM_NOTE_SECTION %s
 # RUN: cat %t/objects/gitoid_blob_sha1/62/db4ab2efaf0b3df12e5004ff2b002936b94697 | FileCheck --check-prefix=BOM_FILE_SHA1 %s
 # RUN: cat %t/objects/gitoid_blob_sha256/6b/a8bcf3a1c3c7cafcfba5994ca7ee29bd47234f8616991717677836ce00dd95 | FileCheck --check-prefix=BOM_FILE_SHA256 %s
+# RUN: ARTIFACT_ID=`git hash-object %t/omnibor.exe`
+# RUN: cat %t/metadata/llvm/$ARTIFACT_ID | FileCheck --check-prefix=METADATA_CONTENTS %s
 
 # RUN: rm -rf %t/objects
 # RUN: ld.lld %t/omnibor.o -e main --omnibor=%t/omnibor_dir -o %t/omnibor_1.exe
@@ -40,3 +42,9 @@
 # BOM_NOTE_SECTION-NEXT: SHA1 GitOID: 62db4ab2efaf0b3df12e5004ff2b002936b94697
 # BOM_NOTE_SECTION-NEXT: 0x00000020       NT_GITOID_SHA256
 # BOM_NOTE_SECTION-NEXT: SHA256 GitOID: 6ba8bcf3a1c3c7cafcfba5994ca7ee29bd47234f8616991717677836ce00dd95
+
+# METADATA_CONTENTS: output: {{.*}} path: {{.*}}omnibor.exe
+# METADATA_CONTENTS: input: {{.*}} path: {{.*}}omnibor.o
+# METADATA_CONTENTS: build_cmd: ld.lld {{.*}}
+==== End of raw info for this process
+

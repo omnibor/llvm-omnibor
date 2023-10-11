@@ -26,6 +26,7 @@ inline std::string demangle(llvm::StringRef symName, bool shouldDemangle) {
   return std::string(symName);
 }
 
+std::string convertToHex(llvm::StringRef Input);
 std::vector<uint8_t> parseHex(llvm::StringRef s);
 bool isValidCIdentifier(llvm::StringRef s);
 

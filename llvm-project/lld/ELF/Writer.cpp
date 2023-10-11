@@ -535,6 +535,23 @@ template <class ELFT> void elf::createSyntheticSections() {
     add(*in.strTab);
 }
 
+static std::string getSHA1Hash(std::string Filename) {
+  llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuf =
+      llvm::MemoryBuffer::getFile(Filename, /*IsText=*/true);
+  if (!fileBuf) {
+    error("\n Cannot open " + Filename);
+    return std::string();
+  }
+
+  llvm::SHA1 Hash;
+  std::string initData =
+      "blob " + std::to_string(fileBuf.get()->getBufferSize()) + '\0';
+  Hash.update(StringRef(initData));
+  Hash.update(fileBuf.get()->getBuffer());
+  auto Result = Hash.final();
+  return convertToHex(Result);
+}
+
 // The main function of the writer.
 template <class ELFT> void Writer<ELFT>::run() {
   copyLocalSymbols();
@@ -612,6 +629,32 @@ template <class ELFT> void Writer<ELFT>::run() {
     if (auto e = buffer->commit())
       error("failed to write to the output file: " + toString(std::move(e)));
   }
+
+  // Write Omnibor metadata
+  std::error_code EC;
+  if (config->outputFile.str().empty() || config->OmniBorDir.empty())
+    return;
+  SmallString<128> MetadataFile(config->OmniBorDir);
+  MetadataFile.append("/metadata/llvm/");
+  EC = llvm::sys::fs::create_directories(MetadataFile, true);
+  SmallString<128> OutputArtifact(config->outputFile.str());
+  llvm::sys::fs::make_absolute(OutputArtifact);
+  std::string OutputArtifactSHA1 = getSHA1Hash(config->outputFile.str());
+  MetadataFile.append(OutputArtifactSHA1);
+  llvm::raw_fd_ostream OSM(MetadataFile, EC, llvm::sys::fs::OF_TextWithCRLF);
+  if (EC) {
+    error("\n failed to create metadata file " + MetadataFile.str().str());
+    return;
+  }
+  std::string MetadataHeader;
+  MetadataHeader.append("output: ");
+  MetadataHeader.append(OutputArtifactSHA1 +
+                        " path: " + OutputArtifact.c_str());
+  config->SHA1_MetadataContents.append("\nbuild_cmd: " + config->CommandLine);
+  config->SHA1_MetadataContents.append(
+      "\n==== End of raw info for this process\n");
+  OSM << MetadataHeader;
+  OSM << config->SHA1_MetadataContents;
 }
 
 template <class ELFT, class RelTy>
