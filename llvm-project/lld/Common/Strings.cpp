@@ -45,6 +45,20 @@ bool StringMatcher::match(StringRef s) const {
   return false;
 }
 
+std::string lld::convertToHex(StringRef Input) {
+  static const char *const LUT = "0123456789abcdef";
+  size_t Length = Input.size();
+
+  std::string Output;
+  Output.reserve(2 * Length);
+  for (size_t i = 0; i < Length; ++i) {
+    const unsigned char c = Input[i];
+    Output.push_back(LUT[c >> 4]);
+    Output.push_back(LUT[c & 15]);
+  }
+  return Output;
+}
+
 // Converts a hex string (e.g. "deadbeef") to a vector.
 std::vector<uint8_t> lld::parseHex(StringRef s) {
   std::vector<uint8_t> hex;

@@ -177,6 +177,8 @@ struct Configuration {
   bool gcSections;
   bool gdbIndex;
   std::string OmniBorDir;
+  std::string SHA1_MetadataContents;
+  std::string CommandLine;
   bool gnuHash = false;
   bool gnuUnique;
   bool hasDynSymTab;

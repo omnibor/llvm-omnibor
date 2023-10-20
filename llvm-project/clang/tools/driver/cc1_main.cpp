@@ -39,7 +39,6 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Process.h"
 #include "llvm/Support/SHA1.h"
-#include "llvm/Support/SHA256.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/TimeProfiler.h"
@@ -306,7 +305,9 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   // later errors use the default handling behavior instead.
   llvm::remove_fatal_error_handler();
 
-  if (!Clang->getCodeGenOpts().RecordOmniBor.empty()) {
+  SmallString<128> OutFile(Clang->getFrontendOpts().OutputFile);
+  if (!Clang->getCodeGenOpts().RecordOmniBor.empty() &&
+      (strcmp(OutFile.c_str(), "-") != 0)) {
     SmallString<128> gitoidPath(Clang->getCodeGenOpts().RecordOmniBor);
     llvm::sys::path::append(gitoidPath, "metadata/llvm");
     auto EC =
@@ -314,30 +315,30 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
     if (EC)
       llvm::errs() << "\nCannot create metadata file ";
 
-    std::vector<std::string> MetadataLines;
-    std::string outLine("\noutput: ");
-    outLine.append(Clang->getFrontendOpts().OutputFile);
-    MetadataLines.push_back(outLine);
-
+    std::string MetadataLines;
     if (Clang->getCodeGenOpts().BomDependencies->size()) {
       std::vector<std::string> &Deps =
           *(Clang->getCodeGenOpts().BomDependencies);
       for (auto file : Deps) {
-        std::string Line = "\ninput " + file;
-        MetadataLines.push_back(Line);
+        std::string Line = "\ninput: " + getSHA1Hash(file) + " path: " + file;
+        MetadataLines.append(Line);
       }
     }
 
-    // Metadata contents
-    std::string MetadataContents;
-    for (auto line : MetadataLines)
-      MetadataContents.append(line);
+    std::string MetadataHdrContents;
+    llvm::sys::fs::make_absolute(OutFile);
+    MetadataHdrContents.append("output: ");
+    MetadataHdrContents.append(getSHA1Hash(OutFile.c_str()));
+    MetadataHdrContents.append(" path: ");
+    MetadataHdrContents.append(OutFile.c_str());
 
-    // Write command line
-    if (!Clang->getCodeGenOpts().OmniborCommandLine.empty()) {
-      MetadataContents.append("\nbuild_cmd: ");
-      MetadataContents.append(Clang->getCodeGenOpts().OmniborCommandLine);
-    }
+    std::string BuildCmdContents;
+    BuildCmdContents.append("\nbuild_cmd: ");
+    BuildCmdContents.append(Clang->getCodeGenOpts().OmniborCommandLine);
+    BuildCmdContents.append("\n==== End of raw info for this process\n");
+
+    // TODO: Optimize this to avoid recomputing the hash for the input
+    // dependencies.
 
     // Write metadata
     std::string artifact_id = getSHA1Hash(Clang->getFrontendOpts().OutputFile);
@@ -346,8 +347,11 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
     llvm::raw_fd_ostream OSM(MetadataFile, EC, llvm::sys::fs::OF_TextWithCRLF);
     if (EC) {
       llvm::errs() << MetadataFile << EC.message();
+    } else {
+      OSM << MetadataHdrContents;
+      OSM << MetadataLines;
+      OSM << BuildCmdContents;
     }
-    OSM << MetadataContents;
   }
 
   // When running with -disable-free, don't do any destruction or shutdown.

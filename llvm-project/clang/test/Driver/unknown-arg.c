@@ -22,6 +22,8 @@
 // RUN:     FileCheck %s --check-prefix=CC1AS-DID-YOU-MEAN
 // RUN: not %clang -cc1asphalt -help 2>&1 | \
 // RUN:     FileCheck %s --check-prefix=UNKNOWN-INTEGRATED
+// RUN: not %clang -### -frecord-omnibor -S -target x86_64-unknown-linux %s 2>&1 | \
+// RUN:	    FileCheck %s --check-prefix=UNKNOWN-OMNIBOR
 
 // RUN: not %clang -### -frecord-omnibor -S -target x86_64-unknown-linux %s 2>&1 | FileCheck %s --check-prefix=UNKNOWN-OMNIBOR
 

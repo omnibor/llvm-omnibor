@@ -503,6 +503,7 @@ void CompilerInstance::createPreprocessor(TranslationUnitKind TUKind) {
     addDependencyCollector(std::make_shared<BomDependencyGenerator>(DepOpts));
     CodeGenOptions &CGOpts = getCodeGenOpts();
     CGOpts.BomDependencies = DepOpts.BomDependencies;
+    CGOpts.OutputFile = getFrontendOpts().OutputFile;
   }
   if (!DepOpts.DOTOutputFile.empty())
     AttachDependencyGraphGen(*PP, DepOpts.DOTOutputFile,
