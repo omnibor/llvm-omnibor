@@ -140,7 +140,7 @@ static void genArtifactIds(FileHashBomMap &BomMap) {
   std::string OutFilename(config->outputFile.str());
   // StringRef BomFile = StringRef(OutFilename);
 
-  // Emit gitbom info for Outputfile
+  // Emit OmniBOR info for Outputfile
   // Getting the hash of the outputfile is tricky as the file has not been
   // written at this point.
   MetadataContents.append("\noutput: ");
@@ -167,7 +167,10 @@ static void genArtifactIds(FileHashBomMap &BomMap) {
     bomData.sha1_artifact_id = convertToHex(Result_sha1);
 
     // Collect Metadata
-    config->SHA1_MetadataContents.append("\ninput: ");
+    if (path.contains(".so"))
+      config->SHA1_MetadataContents.append("\ndynlib: ");
+    else
+      config->SHA1_MetadataContents.append("\ninput: ");
     config->SHA1_MetadataContents.append(bomData.sha1_artifact_id);
     config->SHA1_MetadataContents.append(" path: ");
     SmallString<128> InFilename(path);
@@ -180,7 +183,9 @@ static void genArtifactIds(FileHashBomMap &BomMap) {
     auto Result_sha256 = SHA256_Hash.final();
     bomData.sha256_artifact_id = convertToHex(Result_sha256);
 
-    BomMap[path.str()] = bomData;
+    // Do not include gitoids for shared objects in the Input Manifest.
+    if (!path.contains(".so"))
+      BomMap[path.str()] = bomData;
   }
 }
 
